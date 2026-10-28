@@ -34,7 +34,7 @@ services:
           memory: 1G
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=redis"

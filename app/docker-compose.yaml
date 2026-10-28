@@ -57,12 +57,13 @@ services:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
     deploy:
       resources:
+        # host bütçe ~8 CPU / 16G — api ağır
         limits:
           cpus: "2.0"
-          memory: 1G
+          memory: 3G
         reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "0.5"
+          memory: 512M
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=api"
@@ -99,11 +100,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 1G
+          cpus: "1.5"
+          memory: 2G
         reservations:
-          cpus: "0.1"
-          memory: 256M
+          cpus: "0.25"
+          memory: 512M
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=web"

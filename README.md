@@ -33,6 +33,21 @@ Caddy (Let's Encrypt, 80/443)
 | Logging | `elk/` |
 | Yedek | `backup/` |
 
+### Kaynak bütçesi (8 CPU / 16 GB)
+
+Compose `deploy.resources.limits` toplamı **8 CPU + 15G**; ~1G OS/nginx-proxy için boş.
+
+| Servis | CPU | RAM |
+|--------|-----|-----|
+| api | 2.0 | 3G |
+| web | 1.5 | 2G |
+| postgres | 1.5 | 4G |
+| redis | 0.5 | 1G |
+| minio | 0.5 | 1G |
+| elasticsearch | 1.0 | 2G (`ES_JAVA_OPTS` 1g) |
+| logstash | 0.5 | 1G |
+| kibana | 0.5 | 1G |
+
 ---
 
 ## Klasör yapısı

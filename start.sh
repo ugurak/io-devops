@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# İlk / tekrarlı başlangıç: boş şifreleri üret, bağlantı varsayılanlarını yaz, stack’i aç.
+# Sıfır kurulum: secrets → temizlik → deploy → seed kullanıcılar
 #
-#   ./start.sh                 # secrets (yalnızca boşlar) + deploy
-#   ./start.sh --secrets-only  # yalnızca .env doldur, container yok
-#   ./start.sh --force         # dolu secret’ları da yeniden üret (destructive)
-#   ./start.sh --infra-only    # deploy --infra-only
-#   ./start.sh --app-only      # deploy --app-only
+#   ./start.sh                 # wipe + deploy + seed (önerilen)
+#   ./start.sh --keep-data     # volume'ları silme (DB kalır)
+#   ./start.sh --no-clean      # mevcut stack'e dokunma
+#   ./start.sh --no-seed       # seed-role-users atla
+#   ./start.sh --secrets-only  # yalnızca .env
+#   ./start.sh --force         # secret'ları yeniden üret
 #
 set -euo pipefail
 
@@ -18,24 +19,33 @@ EXAMPLE="$ROOT/.env.example"
 
 SECRETS_ONLY=false
 FORCE=false
+DO_CLEAN=true
+WIPE_VOLUMES=true
+DO_SEED=true
 DEPLOY_ARGS=()
 
 for arg in "$@"; do
   case "$arg" in
     --secrets-only) SECRETS_ONLY=true ;;
     --force) FORCE=true ;;
+    --no-clean) DO_CLEAN=false ;;
+    --keep-data) WIPE_VOLUMES=false ;;
+    --no-seed) DO_SEED=false ;;
     --infra-only|--app-only) DEPLOY_ARGS+=("$arg") ;;
     -h|--help)
       cat <<'EOF'
-Kullanım: ./start.sh [--secrets-only] [--force] [--infra-only|--app-only]
+Kullanım: ./start.sh [seçenekler]
 
-  Boş bırakılmış şifre / anahtarları openssl ile üretir, domain ve DB
-  bağlantı varsayılanlarını yazar, ardından deploy.sh çalıştırır.
+  (varsayılan)     Temizlik (volume dahil) → deploy → seed (5× rol)
+  --keep-data      Volume silme (DB/MinIO/ES kalır)
+  --no-clean       Mevcut konteynerlere dokunma
+  --no-seed        seed-role-users.sh çalıştırma
+  --secrets-only   Yalnızca .env doldur
+  --force          Dolu secret'ları da yeniden üret
+  --infra-only / --app-only   deploy.sh'e iletilir
 
-Üretilen (boşsa):
-  POSTGRES_PASSWORD, REDIS_PASSWORD, MINIO_ROOT_PASSWORD,
-  ELASTIC_PASSWORD, JWT_SIGNING_KEY, ADMIN_INITIAL_PASSWORD,
-  INDEXNOW_KEY (uuid)
+Seed: her rol (Customer, Operator, Admin) için 5 kullanıcı; şifreler ekranda +
+  scripts/seed-role-users.credentials.txt
 EOF
       exit 0
       ;;
@@ -60,7 +70,6 @@ rand_uuid() {
   fi
 }
 
-# KEY değerini oku; tırnakları soy, satır-içi # yorumunu at
 env_get() {
   local key="$1" raw
   [[ -f "$ENV_FILE" ]] || { printf ''; return; }
@@ -79,7 +88,6 @@ env_get() {
   printf '%s' "$raw"
 }
 
-# KEY=value yaz. Boşluk / shell metakarakter varsa çift tırnak (bash source güvenli).
 env_set() {
   local key="$1"
   local val="$2"
@@ -104,7 +112,6 @@ env_set() {
   fi
 }
 
-# Boşsa (veya --force) üret
 ensure_secret() {
   local key="$1"
   local bytes="${2:-32}"
@@ -154,9 +161,11 @@ echo ""
 echo -e "${YELLOW}Bağlantı / kimlik varsayılanları${NC}"
 ensure_default SITE_DOMAIN "dev.istanbulofset.net"
 ensure_default API_DOMAIN "api.istanbulofset.net"
+ensure_default LETSENCRYPT_EMAIL "admin@istanbulofset.net"
 ensure_default APP_ROOT "/var/istanbulofset"
 ensure_default DOCKER_REGISTRY "registry.veraius.com"
 ensure_default IMAGE_TAG "latest"
+ensure_default REGISTRY_USER "admin"
 ensure_default POSTGRES_DB "istanbulofset"
 ensure_default POSTGRES_USER "istanbulofset"
 ensure_default MINIO_ROOT_USER "istanbulofset"
@@ -185,7 +194,6 @@ ensure_secret ELASTIC_PASSWORD 24
 ensure_secret JWT_SIGNING_KEY 48
 ensure_secret ADMIN_INITIAL_PASSWORD 24
 
-# IndexNow — uuid
 current_index="$(env_get INDEXNOW_KEY)"
 if [[ -z "$current_index" || "$FORCE" == true ]]; then
   env_set INDEXNOW_KEY "$(rand_uuid)"
@@ -194,7 +202,12 @@ else
   echo -e "  ${GREEN}✓${NC} INDEXNOW_KEY (mevcut)"
 fi
 
-# Özet bağlantılar (secret’ları echo etme — yalnızca host/db/user)
+# Registry şifresi yoksa veraius varsayılanı
+if [[ -z "$(env_get REGISTRY_PASSWORD)" ]]; then
+  env_set REGISTRY_PASSWORD "lKEdWWoXlX6h5CEtJlXlj7WT!"
+  echo -e "  ${GREEN}+${NC} REGISTRY_PASSWORD"
+fi
+
 SITE_DOMAIN="$(env_get SITE_DOMAIN)"
 API_DOMAIN="$(env_get API_DOMAIN)"
 POSTGRES_DB="$(env_get POSTGRES_DB)"
@@ -213,27 +226,62 @@ cat <<EOF
   Postgres      Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=***
   Redis         redis:6379,password=***
   MinIO         minio:9000  user=${MINIO_ROOT_USER}  bucket=${MINIO_BUCKET}
-  Elasticsearch http://elasticsearch:9200  user=elastic
-  Logstash      http://logstash:8080
   Images        ${DOCKER_REGISTRY}/istanbulofset-*:${IMAGE_TAG}
   Admin e-posta ${ADMIN_EMAIL}
+  Temizlik      clean=${DO_CLEAN} wipe_volumes=${WIPE_VOLUMES}
+  Seed          ${DO_SEED}
   .env          ${ENV_FILE}
 EOF
 
-# SMTP — compose SMTP_HOST ister; boşsa placeholder
 if [[ -z "$(env_get SMTP_HOST)" ]]; then
   echo ""
-  echo -e "${YELLOW}Uyarı: SMTP_HOST boştu → localhost (gerçek SMTP ile değiştirin)${NC}"
+  echo -e "${YELLOW}Uyarı: SMTP_HOST boştu → localhost${NC}"
   env_set SMTP_HOST "localhost"
-  echo -e "  ${GREEN}+${NC} SMTP_HOST=localhost"
 fi
 
 if [[ "$SECRETS_ONLY" == true ]]; then
   echo ""
-  echo -e "${GREEN}✓ Secrets yazıldı (--secrets-only; deploy atlandı)${NC}"
+  echo -e "${GREEN}✓ Secrets yazıldı (--secrets-only)${NC}"
   exit 0
+fi
+
+# .env'i deploy/seed için yükle
+load_env
+
+if [[ "$DO_CLEAN" == true ]]; then
+  echo ""
+  clean_stack "$WIPE_VOLUMES"
 fi
 
 echo ""
 echo -e "${YELLOW}Deploy başlıyor…${NC}"
-exec "$ROOT/deploy.sh" "${DEPLOY_ARGS[@]+"${DEPLOY_ARGS[@]}"}"
+"$ROOT/deploy.sh" "${DEPLOY_ARGS[@]+"${DEPLOY_ARGS[@]}"}"
+
+if [[ "$DO_SEED" == true ]]; then
+  echo ""
+  echo -e "${YELLOW}=== Seed kullanıcılar ===${NC}"
+  wait_healthy istanbulofset-postgres 30 || true
+  wait_healthy istanbulofset-api 90 || true
+  wait_http_ready "https://${API_DOMAIN}/ready" 40 || wait_http_ready "http://127.0.0.1:8080/ready" 5 || true
+
+  export API_URL="https://${API_DOMAIN}"
+  export PGPASSWORD="$(env_get POSTGRES_PASSWORD)"
+  export PGDATABASE="$(env_get POSTGRES_DB)"
+  export PGUSER="$(env_get POSTGRES_USER)"
+  export DOCKER_POSTGRES=istanbulofset-postgres
+  export CRED_FILE="$ROOT/scripts/seed-role-users.credentials.txt"
+
+  if [[ -x "$ROOT/scripts/seed-role-users.sh" ]]; then
+    # Ortak okunabilir seed şifresi (Identity kurallarına uygun)
+    "$ROOT/scripts/seed-role-users.sh" --api "$API_URL" --password "${SEED_PASSWORD:-SeedUser1a}" || {
+      echo -e "${YELLOW}Seed kısmen başarısız olabilir (API/TLS henüz hazır değil). Tekrar:${NC}" >&2
+      echo "  API_URL=$API_URL PGPASSWORD=… ./scripts/seed-role-users.sh --password SeedUser1a" >&2
+    }
+  else
+    echo -e "${RED}scripts/seed-role-users.sh yok${NC}" >&2
+  fi
+fi
+
+echo ""
+echo -e "${GREEN}✓ start tamam${NC}"
+stack_ps

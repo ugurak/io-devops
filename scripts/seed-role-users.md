@@ -12,3 +12,14 @@ export PGPASSWORD="$(grep ^POSTGRES_PASSWORD= .env | cut -d= -f2-)"
 ```
 
 Çıktı: ekran + `seed-role-users.credentials.txt`
+
+## Listele
+
+```bash
+cd /var/io/io-devops
+./scripts/list-users.sh
+./scripts/list-users.sh --seed
+./scripts/list-users.sh --role Admin
+```
+
+Şifreler DB’de hash; seed şifreleri için `scripts/seed-role-users.credentials.txt`.

@@ -91,9 +91,10 @@ services:
       INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       ALLOW_AI_TRAINING: ${ALLOW_AI_TRAINING:-true}
       TZ: Europe/Istanbul
-      VIRTUAL_HOST: ${SITE_DOMAIN:?SITE_DOMAIN gerekli},www.${SITE_DOMAIN}
+      # www yalnızca DNS A kaydı varsa ekle (yoksa LE çoklu SAN siparişi düşer)
+      VIRTUAL_HOST: ${SITE_DOMAIN:?SITE_DOMAIN gerekli}${SITE_WWW_HOST:+,${SITE_WWW_HOST}}
       VIRTUAL_PORT: "3000"
-      LETSENCRYPT_HOST: ${SITE_DOMAIN},www.${SITE_DOMAIN}
+      LETSENCRYPT_HOST: ${SITE_DOMAIN}${SITE_WWW_HOST:+,${SITE_WWW_HOST}}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
     deploy:
       resources:

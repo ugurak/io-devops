@@ -24,9 +24,9 @@ for arg in "$@"; do
       cat <<'EOF'
 Kullanım: ./deploy.sh [--infra-only|--app-only]
 
-  (argüman yok)   ELK → DB → MinIO → backup → app → Caddy
-  --infra-only    uygulama ve Caddy hariç
-  --app-only      yalnızca api + web (+ Caddy)
+  (argüman yok)   ELK → DB → MinIO → backup → app (nginx-proxy / veraius)
+  --infra-only    uygulama hariç
+  --app-only      yalnızca api + web
 EOF
       exit 0
       ;;
@@ -43,7 +43,11 @@ ensure_network
 echo -e "${GREEN}=== İstanbul Ofset deployment ===${NC}"
 echo "APP_ROOT=$APP_ROOT"
 echo "SITE_DOMAIN=${SITE_DOMAIN:-}"
+echo "TLS via: veraius nginx-proxy (Caddy yok)"
 echo ""
+
+# Eski Caddy denemesi 80'i kapmasın
+docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 
 if [[ "$APP_ONLY" != true ]]; then
   echo -e "${GREEN}1/5 ELK${NC}"
@@ -65,13 +69,20 @@ if [[ "$APP_ONLY" != true ]]; then
 fi
 
 if [[ "$INFRA_ONLY" != true ]]; then
-  echo -e "${GREEN}5/5 Uygulama + Caddy${NC}"
+  echo -e "${GREEN}5/5 Uygulama (nginx VIRTUAL_HOST)${NC}"
   echo "  image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-latest}"
+  echo "  web:   https://${SITE_DOMAIN}"
+  echo "  api:   https://${API_DOMAIN}"
   ensure_registry_login
   compose app pull
   compose app up -d
   wait_healthy istanbulofset-api 90 || true
-  compose caddy up -d
+  # vhost body-size snippet (varsa)
+  if [[ -d /var/veraius/dev-ops/nginx/vhost.d ]]; then
+    ln -sfn "$ROOT/nginx/vhost.d/api.istanbulofset.net_location" \
+      /var/veraius/dev-ops/nginx/vhost.d/api.istanbulofset.net_location
+    docker exec nginx-proxy nginx -s reload 2>/dev/null || true
+  fi
 fi
 
 echo ""
@@ -80,3 +91,4 @@ stack_ps
 echo ""
 echo "Sağlık: https://${API_DOMAIN:-api.istanbulofset.net}/ready"
 echo "Site:   https://${SITE_DOMAIN:-dev.istanbulofset.net}"
+echo "Not:    TLS = veraius nginx-proxy + acme-companion"

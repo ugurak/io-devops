@@ -36,6 +36,11 @@ ensure_network() {
     echo -e "${YELLOW}Ağ oluşturuluyor: $NETWORK_NAME${NC}"
     docker network create "$NETWORK_NAME"
   fi
+  # nginx-proxy (veraius) — api/web VIRTUAL_HOST keşfi için zorunlu
+  if ! docker network inspect veraius-proxy >/dev/null 2>&1; then
+    echo -e "${RED}veraius-proxy ağı yok. Önce veraius devops nginx'i ayağa kaldırın.${NC}" >&2
+    exit 1
+  fi
 }
 
 # registry.veraius.com Basic auth — pull öncesi zorunlu

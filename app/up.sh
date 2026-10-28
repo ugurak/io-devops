@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# api + web (registry pull) + isteğe bağlı Caddy
+# api + web (registry pull) — TLS: veraius nginx-proxy
 #
 #   ./up.sh
-#   ./up.sh --with-caddy
 #
 set -euo pipefail
 
@@ -10,15 +9,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../_lib.sh
 source "$ROOT/_lib.sh"
 
-WITH_CADDY=false
-
 for arg in "$@"; do
   case "$arg" in
-    --build) echo -e "${YELLOW}--build kaldırıldı; imajlar registry'den gelir. Yerelde: registry/local-push.sh${NC}" ;;
-    --with-caddy) WITH_CADDY=true ;;
+    --build) echo -e "${YELLOW}--build kaldırıldı; imajlar registry'den gelir. Yerelde: .github/local-push.sh${NC}" ;;
+    --with-caddy) echo -e "${YELLOW}Caddy yok; veraius nginx-proxy kullanılıyor.${NC}" ;;
     -h|--help)
       cat <<'EOF'
-Kullanım: ./up.sh [--with-caddy]
+Kullanım: ./up.sh
 EOF
       exit 0
       ;;
@@ -32,14 +29,10 @@ done
 load_env
 ensure_network
 ensure_registry_login
+docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 
 echo -e "${GREEN}→ app pull/up (${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-latest})${NC}"
 compose app pull
 compose app up -d
-
-if [[ "$WITH_CADDY" == true ]]; then
-  echo -e "${GREEN}→ caddy${NC}"
-  compose caddy up -d
-fi
 
 stack_ps

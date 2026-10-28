@@ -10,8 +10,8 @@ require_env
 
 echo -e "${YELLOW}=== İstanbul Ofset stop ===${NC}"
 
-compose caddy stop || true
 compose app stop || true
+docker stop istanbulofset-caddy >/dev/null 2>&1 || true
 compose backup stop || true
 compose minio stop || true
 compose db/redis stop || true

@@ -1,7 +1,11 @@
+# api + web: iç ağ (DB/MinIO) + veraius-proxy (nginx-proxy keşfi / TLS)
 networks:
   istanbulofset-proxy:
     external: true
     name: istanbulofset-proxy
+  veraius-proxy:
+    external: true
+    name: veraius-proxy
 
 services:
   api:
@@ -10,6 +14,8 @@ services:
     hostname: api
     restart: unless-stopped
     pull_policy: always
+    expose:
+      - "8080"
     environment:
       ConnectionStrings__Default: Host=postgres;Database=${POSTGRES_DB:-istanbulofset};Username=${POSTGRES_USER:-istanbulofset};Password=${POSTGRES_PASSWORD}
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
@@ -44,6 +50,11 @@ services:
       Storage__Minio__UseSsl: "false"
       Logging__Logstash__Url: http://logstash:8080
       TZ: Europe/Istanbul
+      # nginx-proxy (veraius devops)
+      VIRTUAL_HOST: ${API_DOMAIN:?API_DOMAIN gerekli}
+      VIRTUAL_PORT: "8080"
+      LETSENCRYPT_HOST: ${API_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
     deploy:
       resources:
         limits:
@@ -61,6 +72,7 @@ services:
     networks:
       istanbulofset-proxy:
         aliases: [api]
+      veraius-proxy:
 
   web:
     image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-web:${IMAGE_TAG:-latest}
@@ -70,6 +82,8 @@ services:
     pull_policy: always
     depends_on:
       - api
+    expose:
+      - "3000"
     environment:
       API_URL: http://api:8080
       NEXT_PUBLIC_SITE_URL: https://${SITE_DOMAIN}
@@ -77,6 +91,10 @@ services:
       INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       ALLOW_AI_TRAINING: ${ALLOW_AI_TRAINING:-true}
       TZ: Europe/Istanbul
+      VIRTUAL_HOST: ${SITE_DOMAIN:?SITE_DOMAIN gerekli},www.${SITE_DOMAIN}
+      VIRTUAL_PORT: "3000"
+      LETSENCRYPT_HOST: ${SITE_DOMAIN},www.${SITE_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
     deploy:
       resources:
         limits:
@@ -94,3 +112,4 @@ services:
     networks:
       istanbulofset-proxy:
         aliases: [web]
+      veraius-proxy:

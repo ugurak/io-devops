@@ -26,7 +26,7 @@ Caddy (Let's Encrypt, 80/443)
 
 | Katman | Klasör |
 |--------|--------|
-| Reverse proxy | `caddy/` |
+| Reverse proxy | veraius `nginx-proxy` (`VIRTUAL_HOST`) — `caddy/` kullanılmaz |
 | Uygulama | `app/` (api + web build) |
 | Veritabanı | `db/postgres`, `db/redis` |
 | Nesne depolama | `minio/` |
@@ -49,8 +49,9 @@ dev-ops/
 ├── db/redis/
 ├── minio/
 ├── elk/               # + logstash/pipeline.conf
-├── caddy/             # Caddyfile
-├── app/               # api + web
+├── nginx/vhost.d/     # api body-size → veraius nginx'e symlink
+├── caddy/             # (eski; kullanılmaz — nginx-proxy)
+├── app/               # api + web (+ VIRTUAL_HOST)
 └── backup/            # backup.sh / restore.sh
 ```
 

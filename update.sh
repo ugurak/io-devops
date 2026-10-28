@@ -49,10 +49,10 @@ if [[ "$DO_INFRA" == true ]]; then
   compose backup up -d
 fi
 
+docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 ensure_registry_login
 compose app pull
 compose app up -d --force-recreate
-compose caddy up -d
 
 if [[ "$DO_PRUNE" == true ]]; then
   docker image prune -f || true

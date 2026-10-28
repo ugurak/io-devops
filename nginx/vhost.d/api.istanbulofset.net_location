@@ -1,0 +1,8 @@
+# Baskı dosyası yükleme (Caddy max_size 210MB ile aynı).
+# Bu dosyayı veraius nginx vhost.d içine koyun / symlink:
+#   ln -sf /var/io/io-devops/nginx/vhost.d/api.istanbulofset.net_location \
+#          /var/veraius/dev-ops/nginx/vhost.d/api.istanbulofset.net_location
+# Sonra: docker exec nginx-proxy nginx -s reload
+client_max_body_size 210m;
+proxy_read_timeout 300s;
+proxy_send_timeout 300s;

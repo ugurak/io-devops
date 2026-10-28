@@ -14,16 +14,15 @@ source "$ROOT/_lib.sh"
 DO_ALL=false
 DO_VOLUMES=false
 DO_APP=true
-DO_CADDY=true
 
 usage() {
   cat <<'EOF'
 Kullanım: ./down.sh [hedefler] [-v|--volumes]
 
-  (argüman yok)     app + caddy
-  --all             elk, db, minio, backup, app, caddy
+  (argüman yok)     app
+  --all             elk, db, minio, backup, app
   --infra           elk, db, minio, backup
-  --app --caddy
+  --app
   -v|--volumes      compose down -v
 EOF
 }
@@ -32,9 +31,9 @@ ANY=false
 for arg in "$@"; do
   case "$arg" in
     --all) DO_ALL=true; ANY=true ;;
-    --infra) DO_ALL=false; DO_APP=false; DO_CADDY=false; DO_INFRA=true; ANY=true ;;
-    --app) DO_APP=true; DO_CADDY=false; ANY=true ;;
-    --caddy) DO_CADDY=true; DO_APP=false; ANY=true ;;
+    --infra) DO_ALL=false; DO_APP=false; DO_INFRA=true; ANY=true ;;
+    --app) DO_APP=true; ANY=true ;;
+    --caddy) echo -e "${YELLOW}Caddy artık yok (nginx-proxy)${NC}" ;;
     -v|--volumes) DO_VOLUMES=true ;;
     -h|--help) usage; exit 0 ;;
     *)
@@ -49,7 +48,6 @@ DO_INFRA="${DO_INFRA:-false}"
 if [[ "$DO_ALL" == true ]]; then
   DO_INFRA=true
   DO_APP=true
-  DO_CADDY=true
 fi
 
 require_env
@@ -58,10 +56,8 @@ VOL_FLAG=()
 
 echo -e "${GREEN}=== İstanbul Ofset down ===${NC}"
 
-if [[ "$DO_CADDY" == true ]]; then
-  echo -e "${YELLOW}→ caddy${NC}"
-  compose caddy down "${VOL_FLAG[@]}" || true
-fi
+docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
+
 if [[ "$DO_APP" == true ]]; then
   echo -e "${YELLOW}→ app${NC}"
   compose app down "${VOL_FLAG[@]}" || true

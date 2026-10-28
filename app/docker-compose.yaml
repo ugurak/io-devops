@@ -49,6 +49,9 @@ services:
       Storage__Minio__Bucket: ${MINIO_BUCKET:-istanbulofset-uploads}
       Storage__Minio__UseSsl: "false"
       Logging__Logstash__Url: http://logstash:8080
+      WebPush__PublicKey: ${WEBPUSH_PUBLIC_KEY:-}
+      WebPush__PrivateKey: ${WEBPUSH_PRIVATE_KEY:-}
+      WebPush__Subject: ${WEBPUSH_SUBJECT:-mailto:destek@istanbulofset.net}
       TZ: Europe/Istanbul
       # nginx-proxy (veraius devops)
       VIRTUAL_HOST: ${API_DOMAIN:?API_DOMAIN gerekli}
@@ -91,6 +94,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       ALLOW_AI_TRAINING: ${ALLOW_AI_TRAINING:-true}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
       TZ: Europe/Istanbul
       # www yalnızca DNS A kaydı varsa ekle (yoksa LE çoklu SAN siparişi düşer)
       VIRTUAL_HOST: ${SITE_DOMAIN:?SITE_DOMAIN gerekli}${SITE_WWW_HOST:+,${SITE_WWW_HOST}}

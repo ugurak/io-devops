@@ -60,37 +60,46 @@ rand_uuid() {
   fi
 }
 
-# KEY değerini oku; yalnızca boşluk / satır-içi # yorum → boş kabul
+# KEY değerini oku; tırnakları soy, satır-içi # yorumunu at
 env_get() {
   local key="$1" raw
   [[ -f "$ENV_FILE" ]] || { printf ''; return; }
   raw="$(grep -E "^${key}=" "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '\r' || true)"
-  # satır sonu yorumunu at (değer tırnaksızsa)
-  if [[ "$raw" != \"*\" && "$raw" != \'*\' ]]; then
-    raw="${raw%%#*}"
-  fi
-  # trim
   raw="$(printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  if [[ "$raw" == \"*\" ]]; then
+    raw="${raw#\"}"
+    raw="${raw%\"}"
+  elif [[ "$raw" == \'*\' ]]; then
+    raw="${raw#\'}"
+    raw="${raw%\'}"
+  else
+    raw="${raw%%#*}"
+    raw="$(printf '%s' "$raw" | sed -e 's/[[:space:]]*$//')"
+  fi
   printf '%s' "$raw"
 }
 
-# KEY=value yaz / güncelle (yalnızca ilk = ile ayırır; base64 padding korunur)
+# KEY=value yaz. Boşluk / shell metakarakter varsa çift tırnak (bash source güvenli).
 env_set() {
   local key="$1"
   local val="$2"
+  local stored="$val"
+  if [[ "$val" =~ [[:space:]\$\`\"\\\<\>\|\&\;\(\)] ]]; then
+    stored="\"$(printf '%s' "$val" | sed 's/\\/\\\\/g; s/"/\\"/g')\""
+  fi
   local tmp
   tmp="$(mktemp)"
   if [[ ! -f "$ENV_FILE" ]]; then
-    printf '%s=%s\n' "$key" "$val" >"$ENV_FILE"
+    printf '%s=%s\n' "$key" "$stored" >"$ENV_FILE"
     return
   fi
   if grep -qE "^${key}=" "$ENV_FILE"; then
-    awk -v k="$key" -v v="$val" '
+    awk -v k="$key" -v v="$stored" '
       index($0, k "=") == 1 { print k "=" v; next }
       { print }
     ' "$ENV_FILE" >"$tmp" && mv "$tmp" "$ENV_FILE"
   else
-    printf '%s=%s\n' "$key" "$val" >>"$ENV_FILE"
+    printf '%s=%s\n' "$key" "$stored" >>"$ENV_FILE"
     rm -f "$tmp"
   fi
 }

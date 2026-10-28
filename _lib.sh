@@ -24,6 +24,8 @@ load_env() {
   require_env
   set -a
   # shellcheck disable=SC1090
+  # Boşluklu değerler tırnaklı olmalı (örn. ES_JAVA_OPTS="-Xms512m -Xmx512m")
+  # shellcheck source=/dev/null
   source "$ENV_FILE"
   set +a
   APP_ROOT="${APP_ROOT:-/var/istanbulofset}"

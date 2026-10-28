@@ -67,6 +67,7 @@ fi
 if [[ "$INFRA_ONLY" != true ]]; then
   echo -e "${GREEN}5/5 Uygulama + Caddy${NC}"
   echo "  image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-latest}"
+  ensure_registry_login
   compose app pull
   compose app up -d
   wait_healthy istanbulofset-api 90 || true

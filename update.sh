@@ -49,6 +49,7 @@ if [[ "$DO_INFRA" == true ]]; then
   compose backup up -d
 fi
 
+ensure_registry_login
 compose app pull
 compose app up -d --force-recreate
 compose caddy up -d

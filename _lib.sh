@@ -38,6 +38,24 @@ ensure_network() {
   fi
 }
 
+# registry.veraius.com Basic auth — pull öncesi zorunlu
+ensure_registry_login() {
+  local registry="${DOCKER_REGISTRY:-registry.veraius.com}"
+  local user="${REGISTRY_USER:-${DOCKER_REGISTRY_USERNAME:-admin}}"
+  local pass="${REGISTRY_PASSWORD:-${DOCKER_REGISTRY_PASSWORD:-}}"
+  if [[ -z "$pass" ]]; then
+    echo -e "${RED}REGISTRY_PASSWORD boş — .env içine yazın veya:${NC}" >&2
+    echo "  docker login $registry -u $user" >&2
+    exit 1
+  fi
+  echo -e "${YELLOW}Registry login: ${registry} (${user})${NC}"
+  if ! echo "$pass" | docker login "$registry" -u "$user" --password-stdin; then
+    echo -e "${RED}docker login başarısız${NC}" >&2
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Registry oturumu açık${NC}"
+}
+
 compose() {
   local dir="$1"
   shift

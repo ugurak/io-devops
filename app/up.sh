@@ -31,6 +31,7 @@ done
 
 load_env
 ensure_network
+ensure_registry_login
 
 echo -e "${GREEN}→ app pull/up (${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-latest})${NC}"
 compose app pull

@@ -44,6 +44,9 @@ PGPORT="${PGPORT:-}"
 PGPASSWORD="${PGPASSWORD:-$(env_get POSTGRES_PASSWORD 2>/dev/null || true)}"
 
 ROLES=(Customer Operator Admin)
+# auth rate limit: 10/dk — kayıtlar arası boşluk
+SLEEP_BETWEEN="${SEED_SLEEP_BETWEEN:-7}"
+SLEEP_ON_429="${SEED_SLEEP_ON_429:-65}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -51,6 +54,11 @@ while [[ $# -gt 0 ]]; do
     --count) COUNT="${2:?}"; shift 2 ;;
     --domain) DOMAIN="${2:?}"; shift 2 ;;
     --api) API_URL="${2:?}"; shift 2 ;;
+    --roles)
+      IFS=',' read -r -a ROLES <<<"${2:?}"
+      shift 2
+      ;;
+    --sleep) SLEEP_BETWEEN="${2:?}"; shift 2 ;;
     -h|--help)
       sed -n '2,18p' "$0"
       exit 0
@@ -78,11 +86,11 @@ slug_role() {
 psql_exec() {
   local sql="$1"
   if [[ -n "$PGHOST" ]]; then
-    PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "${PGPORT:-5432}" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -c "$sql"
+    PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "${PGPORT:-5432}" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -q -c "$sql" >/dev/null
   elif docker inspect "$DOCKER_POSTGRES" >/dev/null 2>&1; then
     docker exec -i "$DOCKER_POSTGRES" \
       env PGPASSWORD="${PGPASSWORD:-}" \
-      psql -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -c "$sql"
+      psql -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -q -c "$sql" >/dev/null
   else
     echo "Postgres yok: PGHOST=… veya çalışan container DOCKER_POSTGRES=$DOCKER_POSTGRES" >&2
     return 1
@@ -121,24 +129,31 @@ register_user() {
   local email="$1"
   local password="$2"
   local full_name="$3"
-  local body
+  local body attempt=1 code
   body="$(python3 -c 'import json,sys; print(json.dumps({"email":sys.argv[1],"password":sys.argv[2],"fullName":sys.argv[3],"companyName":"Seed Co","acceptedKvkk":True}))' "$email" "$password" "$full_name")"
-  local code
-  code="$(curl -sS -o /tmp/io-seed-reg.json -w '%{http_code}' \
-    -X POST "$API_URL/api/v1/auth/register" \
-    -H 'content-type: application/json' \
-    -d "$body" || true)"
-  case "$code" in
-    200) echo "ok" ;;
-    409)
-      # zaten var — şifreyi bilemeyiz; atla veya yeniden kullan
-      echo "exists"
-      ;;
-    *)
-      echo "fail:$code:$(head -c 200 /tmp/io-seed-reg.json 2>/dev/null || true)" >&2
-      return 1
-      ;;
-  esac
+  while true; do
+    code="$(curl -sS -o /tmp/io-seed-reg.json -w '%{http_code}' \
+      -X POST "$API_URL/api/v1/auth/register" \
+      -H 'content-type: application/json' \
+      -d "$body" || true)"
+    case "$code" in
+      200) echo "ok"; return 0 ;;
+      409) echo "exists"; return 0 ;;
+      429)
+        if (( attempt >= 6 )); then
+          echo "fail:429:rate-limit" >&2
+          return 1
+        fi
+        echo "  rate-limit, ${SLEEP_ON_429}s bekleniyor (deneme $attempt/5)…" >&2
+        sleep "$SLEEP_ON_429"
+        attempt=$((attempt + 1))
+        ;;
+      *)
+        echo "fail:$code:$(head -c 200 /tmp/io-seed-reg.json 2>/dev/null || true)" >&2
+        return 1
+        ;;
+    esac
+  done
 }
 
 echo "=== İstanbul Ofset seed kullanıcılar ==="
@@ -146,6 +161,7 @@ echo "  API     : $API_URL"
 echo "  Domain  : $DOMAIN"
 echo "  Adet/rol: $COUNT"
 echo "  Roller  : ${ROLES[*]}"
+echo "  Sleep   : ${SLEEP_BETWEEN}s (429→${SLEEP_ON_429}s)"
 echo ""
 
 # Başlık
@@ -189,10 +205,15 @@ for role in "${ROLES[@]}"; do
       status="hata"
       password="—"
     fi
+    # Ortak şifre verildiyse mevcut hesapları da credentials'a yaz
+    if [[ "$status" == "zaten-var" && -n "$SHARED_PASSWORD" ]]; then
+      password="$SHARED_PASSWORD"
+    fi
     printf '%-12s  %-42s  %-24s  %s\n' "$role" "$email" "$password" "$status"
     if [[ "$password" != "—" && "$password" != "(mevcut — bilinmiyor)" ]]; then
       printf '%s\t%s\t%s\n' "$role" "$email" "$password" >>"$CRED_FILE"
     fi
+    sleep "$SLEEP_BETWEEN"
   done
 done
 

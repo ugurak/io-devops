@@ -1,9 +1,12 @@
 # Seed kullanıcılar
 
 ```bash
-# Sunucu — .env içindeki API_DOMAIN / POSTGRES_PASSWORD otomatik okunur
+# Sunucu — .env API_DOMAIN; auth rate limit 10/dk → kayıtlar arası ~7s
 cd /var/io/io-devops
 ./scripts/seed-role-users.sh --password 'SeedUser1a'
+
+# Sadece eksik Admin’ler (429 sonrası)
+./scripts/seed-role-users.sh --password 'SeedUser1a' --roles Admin
 
 # veya açıkça:
 API_URL=https://api.istanbulofset.net ./scripts/seed-role-users.sh --password 'SeedUser1a'

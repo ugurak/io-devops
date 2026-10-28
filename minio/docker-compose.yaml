@@ -1,0 +1,44 @@
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  # Bucket API ilk yazımda oluşturulur (S3FileStorage.EnsureBucket).
+  minio:
+    image: pgsty/minio:latest
+    container_name: istanbulofset-minio
+    hostname: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER gerekli}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD gerekli}
+      TZ: Europe/Istanbul
+    volumes:
+      - miniodata:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=minio"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [minio]
+
+volumes:
+  miniodata:
+    name: istanbulofset_miniodata
+    labels:
+      - "com.istanbulofset.volume=minio"
+      - "com.istanbulofset.backup=true"
+      - "com.istanbulofset.critical=true"

@@ -1,0 +1,96 @@
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  api:
+    image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-api:${IMAGE_TAG:-latest}
+    container_name: istanbulofset-api
+    hostname: api
+    restart: unless-stopped
+    pull_policy: always
+    environment:
+      ConnectionStrings__Default: Host=postgres;Database=${POSTGRES_DB:-istanbulofset};Username=${POSTGRES_USER:-istanbulofset};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
+      Database__MigrateOnStartup: "true"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY gerekli (en az 32 karakter)}
+      Web__BaseUrl: https://${SITE_DOMAIN}
+      Cors__Origins__0: https://${SITE_DOMAIN}
+      Proxy__KnownNetworks__0: 172.16.0.0/12
+      Integrations__Payment: ${PAYMENT_PROVIDER:-iyzico}
+      Integrations__Cargo: ${CARGO_PROVIDER:-manual}
+      Integrations__EInvoice: ${EINVOICE_PROVIDER:-manual}
+      Cargo__Company: ${CARGO_COMPANY:-Yurtiçi Kargo}
+      Email__Host: ${SMTP_HOST:?SMTP_HOST gerekli}
+      Email__Port: ${SMTP_PORT:-587}
+      Email__User: ${SMTP_USER:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__Security: ${SMTP_SECURITY:-StartTls}
+      Email__From: ${SMTP_FROM:-İstanbul Ofset <siparis@istanbulofset.net>}
+      Iyzico__BaseUrl: ${IYZICO_BASE_URL:-https://api.iyzipay.com}
+      Iyzico__ApiKey: ${IYZICO_API_KEY:-}
+      Iyzico__SecretKey: ${IYZICO_SECRET_KEY:-}
+      Iyzico__CallbackBaseUrl: https://${API_DOMAIN}
+      Security__RequireStaffMfa: "true"
+      Seed__AdminEmail: ${ADMIN_EMAIL:-}
+      Seed__AdminPassword: ${ADMIN_INITIAL_PASSWORD:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      Storage__Provider: Minio
+      Storage__Minio__Endpoint: minio:9000
+      Storage__Minio__AccessKey: ${MINIO_ROOT_USER}
+      Storage__Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Storage__Minio__Bucket: ${MINIO_BUCKET:-istanbulofset-uploads}
+      Storage__Minio__UseSsl: "false"
+      Logging__Logstash__Url: http://logstash:8080
+      TZ: Europe/Istanbul
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=api"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [api]
+
+  web:
+    image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-web:${IMAGE_TAG:-latest}
+    container_name: istanbulofset-web
+    hostname: web
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:8080
+      NEXT_PUBLIC_SITE_URL: https://${SITE_DOMAIN}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
+      ALLOW_AI_TRAINING: ${ALLOW_AI_TRAINING:-true}
+      TZ: Europe/Istanbul
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=web"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [web]

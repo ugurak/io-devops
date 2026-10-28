@@ -1,0 +1,17 @@
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	# Baskı dosyaları en fazla 200 MB.
+	request_body {
+		max_size 210MB
+	}
+	reverse_proxy api:8080
+}

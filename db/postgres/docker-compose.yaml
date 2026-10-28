@@ -1,0 +1,49 @@
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: istanbulofset-postgres
+    hostname: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-istanbulofset}
+      POSTGRES_USER: ${POSTGRES_USER:-istanbulofset}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD gerekli}
+      TZ: Europe/Istanbul
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=postgres"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [postgres]
+
+volumes:
+  pgdata:
+    name: istanbulofset_pgdata
+    labels:
+      - "com.istanbulofset.volume=postgres"
+      - "com.istanbulofset.backup=true"
+      - "com.istanbulofset.critical=true"

@@ -1,0 +1,118 @@
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: istanbulofset-elasticsearch
+    hostname: elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD gerekli}
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms512m -Xmx512m}
+      TZ: Europe/Istanbul
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -u elastic:$${ELASTIC_PASSWORD} http://localhost:9200 >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=elasticsearch"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [elasticsearch]
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.3
+    container_name: istanbulofset-logstash
+    hostname: logstash
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./logstash/pipeline.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTIC_USER: elastic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      TZ: Europe/Istanbul
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=logstash"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [logstash]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: istanbulofset-kibana
+    hostname: kibana
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+      TZ: Europe/Istanbul
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=kibana"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [kibana]
+
+volumes:
+  esdata:
+    name: istanbulofset_esdata
+    labels:
+      - "com.istanbulofset.volume=elasticsearch"

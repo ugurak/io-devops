@@ -1,0 +1,37 @@
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  backup:
+    image: postgres:17-alpine
+    container_name: istanbulofset-backup
+    hostname: backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-istanbulofset}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD gerekli}
+      PGDATABASE: ${POSTGRES_DB:-istanbulofset}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      TZ: Europe/Istanbul
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["/bin/sh", "-c", "while true; do /bin/sh /backup.sh; sleep 86400; done"]
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=backup"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - istanbulofset-proxy
+
+volumes:
+  backups:
+    name: istanbulofset_backups
+    labels:
+      - "com.istanbulofset.volume=backups"
+      - "com.istanbulofset.backup=true"

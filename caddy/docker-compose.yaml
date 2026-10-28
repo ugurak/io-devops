@@ -1,0 +1,34 @@
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  # api/web ayrı compose'ta; sırayı deploy.sh yönetir.
+  caddy:
+    image: caddy:2-alpine
+    container_name: istanbulofset-caddy
+    hostname: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?SITE_DOMAIN gerekli}
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN gerekli}
+      TZ: Europe/Istanbul
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=caddy"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - istanbulofset-proxy
+
+volumes:
+  caddy_data:
+    name: istanbulofset_caddy_data

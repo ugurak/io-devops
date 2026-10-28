@@ -1,14 +1,12 @@
 # Seed kullanıcılar
 
 ```bash
-# Sunucu (Caddy arkasında API)
+# Sunucu — .env içindeki API_DOMAIN / POSTGRES_PASSWORD otomatik okunur
 cd /var/io/io-devops
-export API_URL=https://api.istanbulofset.net
-export PGPASSWORD="$(grep ^POSTGRES_PASSWORD= .env | cut -d= -f2-)"
-./scripts/seed-role-users.sh
+./scripts/seed-role-users.sh --password 'SeedUser1a'
 
-# Ortak şifre
-./scripts/seed-role-users.sh --password 'TestUser1a'
+# veya açıkça:
+API_URL=https://api.istanbulofset.net ./scripts/seed-role-users.sh --password 'SeedUser1a'
 ```
 
 Çıktı: ekran + `seed-role-users.credentials.txt`

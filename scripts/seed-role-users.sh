@@ -14,17 +14,34 @@
 #
 set -euo pipefail
 
-API_URL="${API_URL:-http://localhost:5180}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+env_get() {
+  local key="$1" f val
+  for f in .env "$ROOT/.env"; do
+    [[ -f "$f" ]] || continue
+    val="$(grep -E "^${key}=" "$f" | head -1 | cut -d= -f2- | sed 's/\r$//; s/^"//; s/"$//')"
+    [[ -n "$val" ]] && { printf '%s' "$val"; return 0; }
+  done
+  return 1
+}
+
+if [[ -z "${API_URL:-}" ]]; then
+  if d="$(env_get API_DOMAIN 2>/dev/null)"; then
+    API_URL="https://${d}"
+  else
+    API_URL="http://localhost:5180"
+  fi
+fi
 DOMAIN="${SEED_DOMAIN:-seed.istanbulofset.local}"
 COUNT="${SEED_COUNT:-5}"
 SHARED_PASSWORD="${SEED_PASSWORD:-}"
 DOCKER_POSTGRES="${DOCKER_POSTGRES:-istanbulofset-postgres}"
-PGDATABASE="${PGDATABASE:-istanbulofset}"
-PGUSER="${PGUSER:-istanbulofset}"
+PGDATABASE="${PGDATABASE:-$(env_get POSTGRES_DB 2>/dev/null || echo istanbulofset)}"
+PGUSER="${PGUSER:-$(env_get POSTGRES_USER 2>/dev/null || echo istanbulofset)}"
 # Yerel compose: host 5434 / parola: container içi
 PGHOST="${PGHOST:-}"
 PGPORT="${PGPORT:-}"
-PGPASSWORD="${PGPASSWORD:-}"
+PGPASSWORD="${PGPASSWORD:-$(env_get POSTGRES_PASSWORD 2>/dev/null || true)}"
 
 ROLES=(Customer Operator Admin)
 
@@ -135,7 +152,7 @@ echo ""
 printf '%-12s  %-42s  %-24s  %s\n' "ROL" "E-POSTA" "ŞİFRE" "DURUM"
 printf '%-12s  %-42s  %-24s  %s\n' "------------" "------------------------------------------" "------------------------" "----------"
 
-CRED_FILE="${CRED_FILE:-$(pwd)/seed-role-users.credentials.txt}"
+CRED_FILE="${CRED_FILE:-$ROOT/scripts/seed-role-users.credentials.txt}"
 : >"$CRED_FILE"
 echo "# üretildi: $(date -u +%Y-%m-%dT%H:%M:%SZ)  api=$API_URL" >>"$CRED_FILE"
 printf '%s\t%s\t%s\n' "role" "email" "password" >>"$CRED_FILE"

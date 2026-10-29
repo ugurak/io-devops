@@ -38,7 +38,8 @@ services:
       Iyzico__ApiKey: ${IYZICO_API_KEY:-}
       Iyzico__SecretKey: ${IYZICO_SECRET_KEY:-}
       Iyzico__CallbackBaseUrl: https://${API_DOMAIN}
-      Security__RequireStaffMfa: "true"
+      # false = geçici erteleme (MFA kurulana kadar yönetim paneli açılsın)
+      Security__RequireStaffMfa: "${REQUIRE_STAFF_MFA:-false}"
       Seed__AdminEmail: ${ADMIN_EMAIL:-}
       Seed__AdminPassword: ${ADMIN_INITIAL_PASSWORD:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}

@@ -35,6 +35,10 @@ services:
       Integrations__Cargo: ${CARGO_PROVIDER:-manual}
       Integrations__EInvoice: ${EINVOICE_PROVIDER:-manual}
       Cargo__Company: ${CARGO_COMPANY:-Yurtiçi Kargo}
+      # Yurtiçi Kargo web servisi (CARGO_PROVIDER=yurtici). Boş adres = test ortamı.
+      YurticiKargo__Username: ${YURTICI_USERNAME:-}
+      YurticiKargo__Password: ${YURTICI_PASSWORD:-}
+      YurticiKargo__BaseUrl: ${YURTICI_BASE_URL:-}
       Email__Host: ${SMTP_HOST:?SMTP_HOST gerekli}
       Email__Port: ${SMTP_PORT:-587}
       Email__User: ${SMTP_USER:-}

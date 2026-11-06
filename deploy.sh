@@ -90,5 +90,5 @@ echo -e "${GREEN}✓ Deploy tamam${NC}"
 stack_ps
 echo ""
 echo "Sağlık: https://${API_DOMAIN:-api.istanbulofset.net}/ready"
-echo "Site:   https://${SITE_DOMAIN:-dev.istanbulofset.net}"
+echo "Site:   https://${SITE_DOMAIN:-test.istanbulofset.net}"
 echo "Not:    TLS = veraius nginx-proxy + acme-companion"

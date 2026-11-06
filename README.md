@@ -74,7 +74,7 @@ dev-ops/
 
 ## İlk kurulum
 
-1. DNS: `dev.istanbulofset.net`, `www.dev.istanbulofset.net`, `api.istanbulofset.net` → sunucu A kaydı  
+1. DNS: `test.istanbulofset.net`, `www.test.istanbulofset.net`, `api.istanbulofset.net` → sunucu A kaydı  
 2. Monorepo sunucuda: `/var/istanbulofset` (veya `.env` içinde `APP_ROOT`)  
 3. Bu repo: `/var/istanbulofset/dev-ops` (veya ayrı clone)  
 4. `.env` değerlerini doldurun (`POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `JWT_SIGNING_KEY`, MinIO, Elastic, SMTP, …)  
@@ -123,7 +123,7 @@ cd /Users/akuqr/Documents/GitHub/istanbulofset
 |----|--------|
 | `https://api.istanbulofset.net/live` | süreç ayakta |
 | `https://api.istanbulofset.net/ready` | Postgres + Redis |
-| `https://dev.istanbulofset.net/` | Next.js |
+| `https://test.istanbulofset.net/` | Next.js |
 
 Kibana / MinIO console / ES prod’da dışarı açılmaz (yalnızca `istanbulofset-proxy`).
 

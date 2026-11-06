@@ -159,7 +159,7 @@ fi
 
 echo ""
 echo -e "${YELLOW}Bağlantı / kimlik varsayılanları${NC}"
-ensure_default SITE_DOMAIN "dev.istanbulofset.net"
+ensure_default SITE_DOMAIN "test.istanbulofset.net"
 ensure_default API_DOMAIN "api.istanbulofset.net"
 ensure_default LETSENCRYPT_EMAIL "admin@istanbulofset.net"
 ensure_default APP_ROOT "/var/istanbulofset"
@@ -183,7 +183,7 @@ ensure_default EINVOICE_PROVIDER "manual"
 ensure_default ALLOW_AI_TRAINING "true"
 ensure_default IOS_BUNDLE_ID "net.istanbulofset.app"
 ensure_default ANDROID_PACKAGE_NAME "net.istanbulofset.app"
-ensure_default ADMIN_EMAIL "admin@dev.istanbulofset.net"
+ensure_default ADMIN_EMAIL "admin@test.istanbulofset.net"
 
 echo ""
 echo -e "${YELLOW}Şifreler / anahtarlar${NC}"

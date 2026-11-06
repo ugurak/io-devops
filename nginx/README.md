@@ -13,6 +13,6 @@ ln -sf /var/io/io-devops/nginx/vhost.d/api.istanbulofset.net_location \
 docker exec nginx-proxy nginx -s reload
 ```
 
-3. DNS: `dev.istanbulofset.net`, `www.dev.istanbulofset.net`, `api.istanbulofset.net` → sunucu.
+3. DNS: `test.istanbulofset.net`, `www.test.istanbulofset.net`, `api.istanbulofset.net` → sunucu.
 
 Caddy container’ı varsa kaldırın: `docker rm -f istanbulofset-caddy`

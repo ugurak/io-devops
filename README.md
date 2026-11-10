@@ -20,8 +20,10 @@ Caddy (Let's Encrypt, 80/443)
   istanbulofset-proxy (external Docker network)
        │
        ├─ postgres / redis / minio
-       ├─ elasticsearch / logstash / kibana
-       └─ backup (günlük pg_dump)
+       ├─ elasticsearch / logstash / kibana (+ hazır pano, site araması)
+       ├─ backup (günlük pg_dump)
+       ├─ gatus (çalışma süresi izleme, e-posta uyarısı)
+       └─ EXTRA_STACKS: clamav · glitchtip · observability (otel/jaeger/prometheus/grafana)
 ```
 
 | Katman | Klasör |
@@ -30,8 +32,12 @@ Caddy (Let's Encrypt, 80/443)
 | Uygulama | `app/` (api + web build) |
 | Veritabanı | `db/postgres`, `db/redis` |
 | Nesne depolama | `minio/` |
-| Logging | `elk/` |
+| Logging | `elk/` (+ `kibana/` hazır pano, `elastic-setup.sh`) |
 | Yedek | `backup/` |
+| Çalışma süresi izleme | `monitoring/` (Gatus, her zaman açık) |
+| Virüs taraması | `clamav/` (isteğe bağlı) |
+| Hata takibi | `glitchtip/` (isteğe bağlı) |
+| Metrik + iz | `observability/` (isteğe bağlı) |
 
 ### Kaynak bütçesi (8 CPU / 16 GB)
 
@@ -47,6 +53,33 @@ Compose `deploy.resources.limits` toplamı **8 CPU + 15G**; ~1G OS/nginx-proxy i
 | elasticsearch | 1.0 | 2G (`ES_JAVA_OPTS` 1g) |
 | logstash | 0.5 | 1G |
 | kibana | 0.5 | 1G |
+| gatus | 0.25 | 128M |
+| *clamav* (isteğe bağlı) | 0.5 | 2G |
+| *glitchtip* (isteğe bağlı) | 0.5 | 768M |
+| *observability* (isteğe bağlı) | 1.0 | 1.25G (collector 256M, jaeger 384M, prometheus 384M, grafana 256M) |
+
+Limitler üst sınırdır; gerçek kullanım çok daha düşüktür. Varsayılan `EXTRA_STACKS="glitchtip observability"`;
+ClamAV imza veritabanını belleğe yüklediği için (~1,5G sürekli) yalnızca bellek yetiyorsa ekleyin.
+
+### İsteğe bağlı yığınlar ve uygulama bağlantıları
+
+`.env` → `EXTRA_STACKS` (boşlukla): `clamav`, `glitchtip`, `observability`. `deploy.sh` / `update.sh --infra`
+yalnızca açık olanları kaldırır; `_lib.sh` (`derive_stack_env`) uygulamaya bağlantıları kendisi verir:
+
+| Yığın | API / web ortamı |
+|-------|------------------|
+| observability | `OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317` |
+| glitchtip | `SENTRY_DSN_API=http://<GLITCHTIP_API_KEY>@glitchtip:8000/1`, `SENTRY_DSN_WEB=…/2` |
+| clamav | `CLAMAV_ADDRESS=clamav:3310` (API `Uploads__ClamAv`) |
+
+Web her zaman `ELASTICSEARCH_URL=http://elasticsearch:9200` ile site araması yapar (ES yoksa yerel aramaya düşer).
+Yönetim panelindeki **Sistem durumu** bu bağlantıların hepsini (antivirus, error-tracking, tracing, logs, email…) gösterir.
+
+Arayüzler dışarı açılmaz; SSH tüneliyle bakılır (konteyner IP'si: `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' istanbulofset-grafana`):
+Kibana 5601 (elastic), Grafana 3000 (admin / `GRAFANA_ADMIN_PASSWORD`), Jaeger 16686, Gatus 8080,
+GlitchTip 8000 (`GLITCHTIP_ADMIN_EMAIL` / `GLITCHTIP_ADMIN_PASSWORD`; `GLITCHTIP_HOST` verilirse nginx-proxy ile yayınlanır).
+
+Kesinti e-postaları (Gatus) ve sipariş e-postaları için `SMTP_HOST` gerçek bir sunucu olmalı (`localhost` ile gönderilmez).
 
 ---
 
@@ -63,7 +96,11 @@ dev-ops/
 ├── db/postgres/
 ├── db/redis/
 ├── minio/
-├── elk/               # + logstash/pipeline.conf
+├── elk/               # + logstash/pipeline.conf, kibana/ (pano), elastic-setup.sh
+├── monitoring/        # Gatus (gatus.yaml)
+├── clamav/            # isteğe bağlı
+├── glitchtip/         # isteğe bağlı (provision.py)
+├── observability/     # isteğe bağlı (otel-collector, prometheus, grafana/)
 ├── nginx/vhost.d/     # api body-size → veraius nginx'e symlink
 ├── caddy/             # (eski; kullanılmaz — nginx-proxy)
 ├── app/               # api + web (+ VIRTUAL_HOST)
@@ -88,7 +125,10 @@ chmod +x start.sh deploy.sh stop.sh down.sh update.sh app/up.sh backup/restore.s
 ./start.sh --force         # secret’ları yeniden üret
 ```
 
-Sıra: ELK → Postgres/Redis → MinIO → backup → api/web (registry pull) → Caddy.
+Sıra: ELK → Postgres/Redis → MinIO → backup → Gatus → EXTRA_STACKS → api/web (registry pull).
+
+> **Dikkat:** `./start.sh` argümansız **volume'ları siler** (sıfır kurulum). Çalışan sunucuda yeni anahtarları
+> eklemek için `./start.sh --secrets-only`, ardından `./deploy.sh` kullanın.
 
 ```bash
 ./deploy.sh --infra-only   # yalnızca altyapı
@@ -162,3 +202,8 @@ Monolitik referans: uygulama reposundaki `deploy/docker-compose.prod.yml`. Bu de
 | `.env.example` | kök `.env` / `.env.example` |
 | `backup.sh` / `restore.sh` | `backup/` |
 | `logstash/pipeline.conf` | `elk/logstash/pipeline.conf` |
+| `elastic-setup.sh`, `kibana/` | `elk/elastic-setup.sh`, `elk/kibana/` |
+| `gatus/config.yaml` | `monitoring/gatus.yaml` |
+| `glitchtip/provision.py` | `glitchtip/provision.py` |
+| `observability/*` | `observability/*` |
+| profil `clamav` / `glitchtip` / `observability` | `EXTRA_STACKS` |

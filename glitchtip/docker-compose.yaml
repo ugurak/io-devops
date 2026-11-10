@@ -1,0 +1,79 @@
+# Hata takibi (GlitchTip, Sentry uyumlu). İsteğe bağlı: EXTRA_STACKS içinde "glitchtip".
+# Aynı Postgres/Redis'i kullanır (ayrı veritabanı "glitchtip", Redis 2 numaralı veritabanı). glitchtip-setup her açılışta
+# veritabanını, yöneticiyi, "istanbulofset" organizasyonunu ve API/Web projelerini GLITCHTIP_API_KEY / GLITCHTIP_WEB_KEY
+# anahtarlarıyla kurar (var olanı korur); _lib.sh bu anahtarlardan SENTRY_DSN_API / SENTRY_DSN_WEB üretir.
+# Arayüz dışarı açılmaz; GLITCHTIP_HOST verilirse nginx-proxy üzerinden yayınlanır (giriş: GLITCHTIP_ADMIN_EMAIL).
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+  veraius-proxy:
+    external: true
+    name: veraius-proxy
+
+x-glitchtip-env: &glitchtip-env
+  DATABASE_URL: postgres://${POSTGRES_USER:-istanbulofset}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/2
+  # Profil kapalıyken dağıtım durmasın diye compose'da zorunlu değil; boşsa GlitchTip açılmaz.
+  SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-}
+  GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8000}
+  DEFAULT_FROM_EMAIL: ${ALERT_FROM:-glitchtip@${SITE_DOMAIN}}
+  EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-}
+  ENABLE_USER_REGISTRATION: "false"
+  GLITCHTIP_MAX_EVENT_LIFE_DAYS: 90
+  GLITCHTIP_ADMIN_EMAIL: ${GLITCHTIP_ADMIN_EMAIL:-${ADMIN_EMAIL:-}}
+  GLITCHTIP_ADMIN_PASSWORD: ${GLITCHTIP_ADMIN_PASSWORD:-}
+  GLITCHTIP_API_KEY: ${GLITCHTIP_API_KEY:-}
+  GLITCHTIP_WEB_KEY: ${GLITCHTIP_WEB_KEY:-}
+  TZ: Europe/Istanbul
+
+services:
+  glitchtip-setup:
+    image: glitchtip/glitchtip:v4.2
+    container_name: istanbulofset-glitchtip-setup
+    environment: *glitchtip-env
+    volumes:
+      - ./provision.py:/setup/provision.py:ro
+    entrypoint: ["python", "/setup/provision.py"]
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=glitchtip-setup"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks: [istanbulofset-proxy]
+
+  glitchtip:
+    image: glitchtip/glitchtip:v4.2
+    container_name: istanbulofset-glitchtip
+    hostname: glitchtip
+    restart: unless-stopped
+    depends_on:
+      glitchtip-setup: { condition: service_completed_successfully }
+    environment:
+      <<: *glitchtip-env
+      VIRTUAL_HOST: ${GLITCHTIP_HOST:-}
+      VIRTUAL_PORT: "8000"
+      LETSENCRYPT_HOST: ${GLITCHTIP_HOST:-}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
+    command: ["python", "app.py"]
+    expose:
+      - "8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=glitchtip"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [glitchtip]
+      veraius-proxy:

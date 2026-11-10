@@ -30,6 +30,41 @@ load_env() {
   source "$ENV_FILE"
   set +a
   APP_ROOT="${APP_ROOT:-/var/istanbulofset}"
+  derive_stack_env
+}
+
+# İsteğe bağlı yığınlar (.env EXTRA_STACKS, boşlukla ayrılmış): clamav glitchtip observability
+# Gatus (monitoring) her zaman açıktır. Bellek: clamav ~1,5G, glitchtip ~0,5G, observability ~0,7G.
+OPTIONAL_STACKS=(clamav glitchtip observability)
+
+stack_enabled() {
+  [[ " ${EXTRA_STACKS:-} " == *" $1 "* ]]
+}
+
+# Açık yığınlara göre uygulama bağlantılarını üretir (.env'de elle verilmişse ona dokunmaz).
+# Kabuk ortamı --env-file'dan önce gelir; compose bu değerleri görür.
+derive_stack_env() {
+  if stack_enabled observability; then
+    export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}"
+  fi
+  if stack_enabled clamav; then
+    export CLAMAV_ADDRESS="${CLAMAV_ADDRESS:-clamav:3310}"
+  fi
+  if stack_enabled glitchtip; then
+    [[ -n "${GLITCHTIP_API_KEY:-}" ]] && export SENTRY_DSN_API="${SENTRY_DSN_API:-http://${GLITCHTIP_API_KEY}@glitchtip:8000/1}"
+    [[ -n "${GLITCHTIP_WEB_KEY:-}" ]] && export SENTRY_DSN_WEB="${SENTRY_DSN_WEB:-http://${GLITCHTIP_WEB_KEY}@glitchtip:8000/2}"
+    [[ -n "${GLITCHTIP_HOST:-}" ]] && export GLITCHTIP_DOMAIN="${GLITCHTIP_DOMAIN:-https://${GLITCHTIP_HOST}}"
+  fi
+  return 0
+}
+
+# Altyapı sırası (deploy/update/stop/down/clean). İsteğe bağlılar yalnızca açıksa.
+infra_dirs() {
+  local dirs=(elk db/postgres db/redis minio backup monitoring) s
+  for s in "${OPTIONAL_STACKS[@]}"; do
+    stack_enabled "$s" && dirs+=("$s")
+  done
+  printf '%s\n' "${dirs[@]}"
 }
 
 ensure_network() {
@@ -86,7 +121,8 @@ clean_stack() {
 
   docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 
-  local dirs=(elk db/postgres db/redis minio backup app caddy)
+  # İsteğe bağlılar kapalı olsa da temizlenir
+  local dirs=(elk db/postgres db/redis minio backup monitoring clamav glitchtip observability app caddy)
   local d
   for d in "${dirs[@]}"; do
     [[ -f "$ROOT/$d/docker-compose.yaml" ]] || continue

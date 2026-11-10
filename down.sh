@@ -20,8 +20,8 @@ usage() {
 Kullanım: ./down.sh [hedefler] [-v|--volumes]
 
   (argüman yok)     app
-  --all             elk, db, minio, backup, app
-  --infra           elk, db, minio, backup
+  --all             altyapı (elk, db, minio, backup, monitoring, EXTRA_STACKS) + app
+  --infra           yalnızca altyapı
   --app
   -v|--volumes      compose down -v
 EOF
@@ -50,7 +50,7 @@ if [[ "$DO_ALL" == true ]]; then
   DO_APP=true
 fi
 
-require_env
+load_env
 VOL_FLAG=()
 [[ "$DO_VOLUMES" == true ]] && VOL_FLAG=(-v)
 
@@ -63,12 +63,11 @@ if [[ "$DO_APP" == true ]]; then
   compose app down "${VOL_FLAG[@]}" || true
 fi
 if [[ "$DO_INFRA" == true ]]; then
-  echo -e "${YELLOW}→ backup / minio / redis / postgres / elk${NC}"
-  compose backup down "${VOL_FLAG[@]}" || true
-  compose minio down "${VOL_FLAG[@]}" || true
-  compose db/redis down "${VOL_FLAG[@]}" || true
-  compose db/postgres down "${VOL_FLAG[@]}" || true
-  compose elk down "${VOL_FLAG[@]}" || true
+  DIRS=(); while read -r d; do DIRS+=("$d"); done < <(infra_dirs)
+  echo -e "${YELLOW}→ ${DIRS[*]}${NC}"
+  for (( i=${#DIRS[@]}-1; i>=0; i-- )); do
+    compose "${DIRS[$i]}" down "${VOL_FLAG[@]+"${VOL_FLAG[@]}"}" || true
+  done
 fi
 
 echo -e "${GREEN}✓ Down tamam${NC}"

@@ -6,17 +6,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_lib.sh
 source "$ROOT/_lib.sh"
 
-require_env
+load_env
 
 echo -e "${YELLOW}=== İstanbul Ofset stop ===${NC}"
 
 compose app stop || true
 docker stop istanbulofset-caddy >/dev/null 2>&1 || true
-compose backup stop || true
-compose minio stop || true
-compose db/redis stop || true
-compose db/postgres stop || true
-compose elk stop || true
+# Altyapı ters sırada (isteğe bağlılar önce)
+DIRS=(); while read -r d; do DIRS+=("$d"); done < <(infra_dirs)
+for (( i=${#DIRS[@]}-1; i>=0; i-- )); do
+  compose "${DIRS[$i]}" stop || true
+done
 
 echo -e "${GREEN}✓ Durduruldu${NC}"
 stack_ps

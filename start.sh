@@ -184,6 +184,8 @@ ensure_default ALLOW_AI_TRAINING "true"
 ensure_default IOS_BUNDLE_ID "net.istanbulofset.app"
 ensure_default ANDROID_PACKAGE_NAME "net.istanbulofset.app"
 ensure_default ADMIN_EMAIL "admin@test.istanbulofset.net"
+# İsteğe bağlı yığınlar: clamav (~1,5G) glitchtip (~0,5G) observability (~0,7G)
+ensure_default EXTRA_STACKS "glitchtip observability"
 
 echo ""
 echo -e "${YELLOW}Şifreler / anahtarlar${NC}"
@@ -193,6 +195,19 @@ ensure_secret MINIO_ROOT_PASSWORD 32
 ensure_secret ELASTIC_PASSWORD 24
 ensure_secret JWT_SIGNING_KEY 48
 ensure_secret ADMIN_INITIAL_PASSWORD 24
+ensure_secret GRAFANA_ADMIN_PASSWORD 24
+ensure_secret GLITCHTIP_SECRET_KEY 48
+ensure_secret GLITCHTIP_ADMIN_PASSWORD 24
+
+# GlitchTip proje anahtarları (DSN'ler bunlardan üretilir; değişirse eski DSN'ler geçersiz olur)
+for key in GLITCHTIP_API_KEY GLITCHTIP_WEB_KEY; do
+  if [[ -z "$(env_get "$key")" ]]; then
+    env_set "$key" "$(rand_uuid)"
+    echo -e "  ${GREEN}+${NC} $key"
+  else
+    echo -e "  ${GREEN}✓${NC} $key (mevcut)"
+  fi
+done
 
 current_index="$(env_get INDEXNOW_KEY)"
 if [[ -z "$current_index" || "$FORCE" == true ]]; then
@@ -228,6 +243,7 @@ cat <<EOF
   MinIO         minio:9000  user=${MINIO_ROOT_USER}  bucket=${MINIO_BUCKET}
   Images        ${DOCKER_REGISTRY}/istanbulofset-*:${IMAGE_TAG}
   Admin e-posta ${ADMIN_EMAIL}
+  Ek yığınlar   monitoring $(env_get EXTRA_STACKS)
   Temizlik      clean=${DO_CLEAN} wipe_volumes=${WIPE_VOLUMES}
   Seed          ${DO_SEED}
   .env          ${ENV_FILE}
@@ -237,6 +253,9 @@ if [[ -z "$(env_get SMTP_HOST)" ]]; then
   echo ""
   echo -e "${YELLOW}Uyarı: SMTP_HOST boştu → localhost${NC}"
   env_set SMTP_HOST "localhost"
+fi
+if [[ "$(env_get SMTP_HOST)" == "localhost" ]]; then
+  echo -e "${YELLOW}Uyarı: SMTP_HOST=localhost → sipariş e-postaları ve kesinti uyarıları (Gatus) gönderilmez; gerçek SMTP girin.${NC}"
 fi
 
 if [[ "$SECRETS_ONLY" == true ]]; then

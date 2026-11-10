@@ -53,7 +53,10 @@ services:
       Security__RequireStaffMfa: "${REQUIRE_STAFF_MFA:-false}"
       Seed__AdminEmail: ${ADMIN_EMAIL:-}
       Seed__AdminPassword: ${ADMIN_INITIAL_PASSWORD:-}
+      # _lib.sh EXTRA_STACKS'e göre doldurur (observability / glitchtip / clamav); boşsa özellik kapalı.
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      Sentry__Dsn: ${SENTRY_DSN_API:-}
+      Uploads__ClamAv: ${CLAMAV_ADDRESS:-}
       Storage__Provider: Minio
       Storage__Minio__Endpoint: minio:9000
       Storage__Minio__AccessKey: ${MINIO_ROOT_USER}
@@ -108,6 +111,12 @@ services:
       INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       ALLOW_AI_TRAINING: ${ALLOW_AI_TRAINING:-true}
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
+      # Site araması (Türkçe kök, yazım hatası toleransı); Elasticsearch yoksa yerel aramaya düşer.
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+      # Sunucu ve tarayıcı hataları GlitchTip'e (kişisel veri gönderilmez).
+      SENTRY_DSN: ${SENTRY_DSN_WEB:-}
       TZ: Europe/Istanbul
       # www yalnızca DNS A kaydı varsa ekle (yoksa LE çoklu SAN siparişi düşer)
       VIRTUAL_HOST: ${SITE_DOMAIN:?SITE_DOMAIN gerekli}${SITE_WWW_HOST:+,${SITE_WWW_HOST}}

@@ -42,11 +42,9 @@ echo -e "${GREEN}=== İstanbul Ofset update ===${NC}"
 echo "  ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-latest}"
 
 if [[ "$DO_INFRA" == true ]]; then
-  compose elk up -d
-  compose db/postgres up -d
-  compose db/redis up -d
-  compose minio up -d
-  compose backup up -d
+  while read -r d; do
+    compose "$d" up -d
+  done < <(infra_dirs)
 fi
 
 docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true

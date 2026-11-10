@@ -24,7 +24,8 @@ for arg in "$@"; do
       cat <<'EOF'
 Kullanım: ./deploy.sh [--infra-only|--app-only]
 
-  (argüman yok)   ELK → DB → MinIO → backup → app (nginx-proxy / veraius)
+  (argüman yok)   ELK → DB → MinIO → backup → izleme (Gatus) → [EXTRA_STACKS] → app
+                  EXTRA_STACKS (.env): clamav glitchtip observability
   --infra-only    uygulama hariç
   --app-only      yalnızca api + web
 EOF
@@ -64,8 +65,17 @@ if [[ "$APP_ONLY" != true ]]; then
   echo -e "${GREEN}3/5 MinIO${NC}"
   compose minio up -d
 
-  echo -e "${GREEN}4/5 Yedekleme${NC}"
+  echo -e "${GREEN}4/5 Yedekleme + izleme${NC}"
   compose backup up -d
+  compose monitoring up -d
+
+  # İsteğe bağlı yığınlar (.env EXTRA_STACKS)
+  for s in "${OPTIONAL_STACKS[@]}"; do
+    if stack_enabled "$s"; then
+      echo -e "${GREEN}   + $s${NC}"
+      compose "$s" up -d
+    fi
+  done
 fi
 
 if [[ "$INFRA_ONLY" != true ]]; then

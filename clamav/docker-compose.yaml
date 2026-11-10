@@ -1,0 +1,40 @@
+# Yüklenen dosyalarda virüs taraması (API Uploads__ClamAv=clamav:3310). İsteğe bağlı: EXTRA_STACKS içinde "clamav".
+# İmza veritabanı belleğe yüklenir (~1,5 GB); ilk açılışta imzalar indirilir (birkaç dakika).
+networks:
+  istanbulofset-proxy:
+    external: true
+    name: istanbulofset-proxy
+
+services:
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: istanbulofset-clamav
+    hostname: clamav
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Istanbul
+    volumes:
+      - clamdb:/var/lib/clamav
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 2G
+        reservations:
+          cpus: "0.1"
+          memory: 1G
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=clamav"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      istanbulofset-proxy:
+        aliases: [clamav]
+
+volumes:
+  clamdb:
+    name: istanbulofset_clamdb
+    labels:
+      - "com.istanbulofset.volume=clamav"

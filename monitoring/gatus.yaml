@@ -1,0 +1,120 @@
+# Çalışma süresi izleme (Gatus). Adresler ortamdan: SITE_URL, API_URL; SSL kontrolleri TLS_CHECKS=true iken.
+# Bir kontrol 3 kez üst üste başarısız olunca ALERT_EMAIL'e e-posta gider, düzelince "çözüldü" e-postası gelir.
+storage:
+  type: sqlite
+  path: /data/data.db
+
+ui:
+  title: İstanbul Ofset — Durum
+  header: İstanbul Ofset durum
+
+alerting:
+  email:
+    from: ${ALERT_FROM}
+    username: ${SMTP_USER}
+    password: ${SMTP_PASSWORD}
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    to: ${ALERT_EMAIL}
+    client:
+      insecure: ${SMTP_INSECURE}
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+      description: "İstanbul Ofset izleme"
+
+endpoint-defaults: &defaults
+  interval: 1m
+  client:
+    timeout: 10s
+  alerts:
+    - type: email
+
+endpoints:
+  - name: Ana sayfa
+    group: Site
+    url: ${SITE_URL}/
+    <<: *defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 3000"
+
+  - name: Arama
+    group: Site
+    url: ${SITE_URL}/api/oneri?q=kartvizit
+    <<: *defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "len([BODY].data) > 0"
+
+  - name: Site haritası
+    group: Site
+    url: ${SITE_URL}/sitemap.xml
+    <<: *defaults
+    interval: 15m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: Google Merchant feed
+    group: Site
+    url: ${SITE_URL}/feeds/google-merchant.xml
+    <<: *defaults
+    interval: 15m
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: API ayakta
+    group: API
+    url: ${API_URL}/live
+    <<: *defaults
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: Veritabanı ve Redis
+    group: API
+    url: ${API_URL}/ready
+    <<: *defaults
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: Katalog
+    group: API
+    url: ${API_URL}/api/v1/catalog
+    <<: *defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "len([BODY].data.products) > 0"
+      - "[RESPONSE_TIME] < 2000"
+
+  # iyzico ödeme sonrası buraya döner; jetonsuz istek ödeme sayfasına yönlendirilir (302). 5xx ise ödemeler tamamlanamaz.
+  - name: Ödeme dönüş adresi
+    group: API
+    url: ${API_URL}/api/v1/payments/iyzico/callback
+    <<: *defaults
+    client:
+      timeout: 10s
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] < 500"
+
+  - name: Site SSL sertifikası
+    group: Sertifikalar
+    enabled: ${TLS_CHECKS}
+    url: ${SITE_URL}/
+    <<: *defaults
+    interval: 6h
+    conditions:
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+
+  - name: API SSL sertifikası
+    group: Sertifikalar
+    enabled: ${TLS_CHECKS}
+    url: ${API_URL}/live
+    <<: *defaults
+    interval: 6h
+    conditions:
+      - "[CERTIFICATE_EXPIRATION] > 336h"

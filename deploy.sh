@@ -10,6 +10,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Önce depodaki son yapılandırmayı al (git pull), sonra güncel betikle yeniden başla. NO_PULL=1 ile atlanır.
+if [[ -z "${IO_DEPLOY_PULLED:-}" && -z "${NO_PULL:-}" && -d "$ROOT/.git" ]]; then
+  echo "git pull ($ROOT)…"
+  if git -C "$ROOT" pull --ff-only; then
+    IO_DEPLOY_PULLED=1 exec "$ROOT/deploy.sh" "$@"
+  fi
+  echo "UYARI: git pull başarısız; mevcut dosyalarla devam ediliyor" >&2
+fi
+
 # shellcheck source=_lib.sh
 source "$ROOT/_lib.sh"
 

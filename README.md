@@ -172,10 +172,21 @@ Kibana / MinIO console / ES prod’da dışarı açılmaz (yalnızca `istanbulof
 ## Yedekleme
 
 - `backup` servisi her 24 saatte `pg_dump` (custom); `BACKUP_RETENTION_DAYS` (varsayılan 14).  
-- Yedekleri sunucu dışına kopyalayın; MinIO `miniodata` ayrı yedeklenmeli.
+- `offsite` servisi (rclone) günde bir, pg_dump'tan ~1 saat sonra: yedekleri ve MinIO bucket'ını S3 uyumlu bir hedefe
+  (R2/B2/Wasabi/S3) **istemci tarafında şifreleyip** kopyalar. `.env` içinde `OFFSITE_*` değişkenleri; `OFFSITE_S3_BUCKET`
+  boşsa yalnızca uyarı yazar. Hedefte `OFFSITE_RETENTION_DAYS` (30) gün tutulur; silinen medya `media-deleted/<tarih>` altında kalır.
+- `OFFSITE_ENCRYPTION_PASSWORD` kaybolursa uzak yedekler açılamaz: parola yöneticisine kaydedin.
+- İlk kurulum / değişiklik sonrası: `./update.sh --infra` (normal `update.sh` yalnızca api/web'i yeniler).
 
 ```bash
+./backup/restore.sh istanbulofset-20261026T000000Z.dump          # yerel yedekten geri yükle
+
+# Sunucu kaybında (yeni sunucu, .env aynı): uzak yedekten
+docker exec istanbulofset-offsite sh /offsite.sh list
+docker exec istanbulofset-offsite sh /offsite.sh fetch-db istanbulofset-20261026T000000Z.dump
 ./backup/restore.sh istanbulofset-20261026T000000Z.dump
+docker exec istanbulofset-offsite sh /offsite.sh restore-media
+docker logs istanbulofset-offsite --tail 20                         # son çalışmanın sonucu
 ```
 
 ---

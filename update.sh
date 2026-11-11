@@ -67,6 +67,7 @@ fi
 docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 ensure_registry_login
 compose app pull
+pre_deploy
 compose app up -d --force-recreate
 
 if [[ "$DO_PRUNE" == true ]]; then

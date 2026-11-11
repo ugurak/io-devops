@@ -95,6 +95,7 @@ if [[ "$INFRA_ONLY" != true ]]; then
   echo "  api:   https://${API_DOMAIN}"
   ensure_registry_login
   compose app pull
+  pre_deploy
   compose app up -d
   wait_healthy istanbulofset-api 90 || true
   # vhost body-size snippet (varsa)

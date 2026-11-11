@@ -31,6 +31,10 @@ services:
   glitchtip-setup:
     image: glitchtip/glitchtip:v4.2
     container_name: istanbulofset-glitchtip-setup
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     environment: *glitchtip-env
     volumes:
       - ./provision.py:/setup/provision.py:ro
@@ -46,6 +50,10 @@ services:
   glitchtip:
     image: glitchtip/glitchtip:v4.2
     container_name: istanbulofset-glitchtip
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: glitchtip
     restart: unless-stopped
     depends_on:

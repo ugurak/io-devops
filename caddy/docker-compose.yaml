@@ -8,6 +8,10 @@ services:
   caddy:
     image: caddy:2-alpine
     container_name: istanbulofset-caddy
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: caddy
     restart: unless-stopped
     ports:

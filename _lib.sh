@@ -227,3 +227,20 @@ stack_ps() {
   docker ps --filter "name=istanbulofset-" \
     --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
 }
+
+# Uygulama yeniden oluşturulmadan önce: (1) geri dönüş için anlık veritabanı yedeği, (2) yeni imajla yalnızca
+# veritabanı geçişleri. Geçiş başarısız olursa betik durur ve çalışan eski sürüm yerinde kalır (site kapanmaz).
+pre_deploy() {
+  if docker ps --format '{{.Names}}' | grep -qx istanbulofset-backup; then
+    echo "Dağıtım öncesi veritabanı yedeği…"
+    docker exec istanbulofset-backup sh -c \
+      'f=/backups/predeploy-$(date -u +%Y%m%dT%H%M%SZ).dump; pg_dump --format=custom --no-owner --file="$f" && echo "  $f"; find /backups -name "predeploy-*.dump" -mtime +2 -delete' \
+      || echo -e "${YELLOW}UYARI: dağıtım öncesi yedek alınamadı; devam ediliyor${NC}" >&2
+  fi
+  echo "Veritabanı geçişleri (yeni imaj, --migrate-only)…"
+  if ! compose app run --rm --no-deps -T api --migrate-only; then
+    echo -e "${RED}Veritabanı geçişi başarısız — uygulama güncellenmedi, eski sürüm çalışıyor.${NC}" >&2
+    echo "Geri dönmek için yedek: docker exec istanbulofset-backup ls /backups | grep predeploy" >&2
+    return 1
+  fi
+}

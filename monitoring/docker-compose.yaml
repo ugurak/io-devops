@@ -11,6 +11,10 @@ services:
   gatus:
     image: twinproduction/gatus:v5.17.0
     container_name: istanbulofset-gatus
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: gatus
     restart: unless-stopped
     environment:

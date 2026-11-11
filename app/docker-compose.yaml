@@ -11,6 +11,10 @@ services:
   api:
     image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-api:${IMAGE_TAG:-latest}
     container_name: istanbulofset-api
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: api
     restart: unless-stopped
     pull_policy: always
@@ -102,6 +106,10 @@ services:
   web:
     image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-web:${IMAGE_TAG:-latest}
     container_name: istanbulofset-web
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: web
     restart: unless-stopped
     pull_policy: always

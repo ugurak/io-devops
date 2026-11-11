@@ -9,6 +9,10 @@ services:
   clamav:
     image: clamav/clamav:1.4
     container_name: istanbulofset-clamav
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: clamav
     restart: unless-stopped
     environment:

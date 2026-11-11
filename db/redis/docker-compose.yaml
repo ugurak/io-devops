@@ -7,6 +7,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: istanbulofset-redis
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: redis
     restart: unless-stopped
     command:
@@ -15,6 +19,12 @@ services:
       - ${REDIS_PASSWORD:?REDIS_PASSWORD gerekli}
       - --appendonly
       - "yes"
+      # Bellek sınırı (konteyner 1 GB): yalnızca süreli anahtarlar (önbellek, istek sınırı) atılır;
+      # süresiz e-posta kuyruğu (io:email) korunur. Sınırsızken OOM ile tüm Redis düşerdi.
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-768mb}
+      - --maxmemory-policy
+      - volatile-lru
       - --loglevel
       - warning
     environment:

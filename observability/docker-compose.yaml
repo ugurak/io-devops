@@ -16,6 +16,10 @@ services:
     <<: *common
     image: otel/opentelemetry-collector-contrib:0.111.0
     container_name: istanbulofset-otel-collector
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: otel-collector
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
@@ -39,6 +43,10 @@ services:
     <<: *common
     image: jaegertracing/all-in-one:1.62.0
     container_name: istanbulofset-jaeger
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: jaeger
     command: ["--memory.max-traces=20000"]
     environment:
@@ -60,6 +68,10 @@ services:
     <<: *common
     image: prom/prometheus:v2.55.1
     container_name: istanbulofset-prometheus
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: prometheus
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=30d"]
     volumes:
@@ -83,6 +95,10 @@ services:
     <<: *common
     image: grafana/grafana:11.3.0
     container_name: istanbulofset-grafana
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}

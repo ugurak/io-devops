@@ -7,6 +7,10 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: istanbulofset-elasticsearch
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: elasticsearch
     restart: unless-stopped
     environment:
@@ -49,6 +53,10 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.15.3
     container_name: istanbulofset-logstash
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: logstash
     restart: unless-stopped
     depends_on:
@@ -87,6 +95,10 @@ services:
   elastic-setup:
     image: curlimages/curl:8.10.1
     container_name: istanbulofset-elastic-setup
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -110,6 +122,10 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.3
     container_name: istanbulofset-kibana
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     hostname: kibana
     restart: unless-stopped
     depends_on:
@@ -146,6 +162,10 @@ services:
   kibana-setup:
     image: curlimages/curl:8.10.1
     container_name: istanbulofset-kibana-setup
+    # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     depends_on: [kibana]
     environment:
       KIBANA_URL: http://kibana:5601

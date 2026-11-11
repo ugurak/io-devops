@@ -12,8 +12,21 @@ set -eu
 
 log() { echo "[offsite $(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 
+# Gatus sinyali (monitoring/gatus.yaml → yedekleme_offsite): eşitleme bitince başarı/başarısızlık bildirilir;
+# 26 saat sinyal gelmezse veya başarısızsa e-posta uyarısı. Yalnızca günlük eşitlemede (sync) çalışır.
+report() {
+  [ -n "${GATUS_OFFSITE_URL:-}" ] || return 0
+  wget -q -O /dev/null --post-data="" --header="Authorization: Bearer ${BACKUP_HEARTBEAT_TOKEN:-}" \
+    "${GATUS_OFFSITE_URL}?success=$1${2:+&error=$2}" || log "UYARI: izleme sinyali gönderilemedi"
+}
+if [ "${1:-sync}" = sync ]; then
+  trap 'rc=$?; if [ "$rc" -eq 0 ]; then report true; else report false "offsite-basarisiz"; fi' EXIT
+fi
+
 if [ -z "${OFFSITE_S3_BUCKET:-}" ]; then
   log "UYARI: OFFSITE_S3_BUCKET tanımlı değil — yedekler yalnızca bu sunucuda (sunucu dışı kopya yok)"
+  trap - EXIT
+  report false "yapilandirilmamis"
   exit 0
 fi
 : "${OFFSITE_S3_ENDPOINT:?OFFSITE_S3_ENDPOINT gerekli}"

@@ -237,8 +237,14 @@ pre_deploy() {
       'f=/backups/predeploy-$(date -u +%Y%m%dT%H%M%SZ).dump; pg_dump --format=custom --no-owner --file="$f" && echo "  $f"; find /backups -name "predeploy-*.dump" -mtime +2 -delete' \
       || echo -e "${YELLOW}UYARI: dağıtım öncesi yedek alınamadı; devam ediliyor${NC}" >&2
   fi
+  # f1fb59e'den eski imajlar --migrate-only bilmez (sunucuyu açar, bitmez): onlara geri dönerken NO_MIGRATE=1.
+  if [[ -n "${NO_MIGRATE:-}" ]]; then
+    echo "NO_MIGRATE=1: geçiş adımı atlandı"
+    return 0
+  fi
   echo "Veritabanı geçişleri (yeni imaj, --migrate-only)…"
-  if ! compose app run --rm --no-deps -T api --migrate-only; then
+  if ! timeout 900 docker compose --project-name "$(compose_project_for app)" --env-file "$ENV_FILE" \
+      -f "$ROOT/app/docker-compose.yaml" run --rm --no-deps -T api --migrate-only; then
     echo -e "${RED}Veritabanı geçişi başarısız — uygulama güncellenmedi, eski sürüm çalışıyor.${NC}" >&2
     echo "Geri dönmek için yedek: docker exec istanbulofset-backup ls /backups | grep predeploy" >&2
     return 1

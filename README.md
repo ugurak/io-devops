@@ -230,6 +230,8 @@ CI her sürümü `latest` ile birlikte commit'in kısa SHA'sıyla da etiketler v
 
 Seçilen etiket `.image-tag` dosyasında durur (git dışı); `deploy.sh` ve `start.sh` de onu kullanır.
 Veritabanı geçişleri geri alınmaz: eski sürüm yeni şemayla çalışır (geçişler yalnızca ekleme yapar).
+Her dağıtımdan önce `predeploy-*.dump` yedeği alınır (2 gün tutulur) ve geçişler yeni imajla ayrıca çalışır;
+geçiş başarısızsa eski sürüm çalışmaya devam eder. f1fb59e'den eski bir imaja dönerken: `NO_MIGRATE=1 ./update.sh --tag <sha>`.
 
 ## MinIO uygulama kullanıcısı
 

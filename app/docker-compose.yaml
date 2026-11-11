@@ -61,10 +61,12 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       Sentry__Dsn: ${SENTRY_DSN_API:-}
       Uploads__ClamAv: ${CLAMAV_ADDRESS:-}
+      Uploads__ArtworkRetentionDays: ${ARTWORK_RETENTION_DAYS:-365}
       Storage__Provider: Minio
       Storage__Minio__Endpoint: minio:9000
-      Storage__Minio__AccessKey: ${MINIO_ROOT_USER}
-      Storage__Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      # Kısıtlı uygulama kullanıcısı (minio/minio-setup.sh); tanımlı değilse root ile devam eder.
+      Storage__Minio__AccessKey: ${MINIO_APP_USER:-${MINIO_ROOT_USER}}
+      Storage__Minio__SecretKey: ${MINIO_APP_PASSWORD:-${MINIO_ROOT_PASSWORD}}
       Storage__Minio__Bucket: ${MINIO_BUCKET:-istanbulofset-uploads}
       Storage__Minio__UseSsl: "false"
       Logging__Logstash__Url: http://logstash:8080

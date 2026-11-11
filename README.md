@@ -218,3 +218,29 @@ Monolitik referans: uygulama reposundaki `deploy/docker-compose.prod.yml`. Bu de
 | `glitchtip/provision.py` | `glitchtip/provision.py` |
 | `observability/*` | `observability/*` |
 | profil `clamav` / `glitchtip` / `observability` | `EXTRA_STACKS` |
+
+## Sürüm geri alma
+
+CI her sürümü `latest` ile birlikte commit'in kısa SHA'sıyla da etiketler ve sunucuda tam o etiketi kurar.
+
+```bash
+./update.sh --tag 4a1f83d   # önceki sürüme dön (etiket: git log --oneline)
+./update.sh --tag latest    # seçimi kaldır, güncele dön
+```
+
+Seçilen etiket `.image-tag` dosyasında durur (git dışı); `deploy.sh` ve `start.sh` de onu kullanır.
+Veritabanı geçişleri geri alınmaz: eski sürüm yeni şemayla çalışır (geçişler yalnızca ekleme yapar).
+
+## MinIO uygulama kullanıcısı
+
+API, root yerine yalnızca `MINIO_BUCKET`'a yetkili `MINIO_APP_USER` ile bağlanır. `.env`'e
+`MINIO_APP_USER` ve `MINIO_APP_PASSWORD` yazıp `./deploy.sh` çalıştırın; `minio-setup` kullanıcıyı ve
+ilkeyi oluşturur. Boş bırakılırsa API root kullanıcısıyla devam eder.
+
+## Saklama ve disk
+
+- Elasticsearch günlükleri `LOG_RETENTION_DAYS` (30) gün sonra silinir (ILM, `elk/elastic-setup.sh`).
+- Teslim edilmiş/iptal siparişlerin baskı dosyaları 365 gün sonra MinIO'dan silinir (`Uploads__ArtworkRetentionDays`, 0 = kapalı).
+- Denetim kayıtları 2 yıl tutulur.
+- `backup.sh` diski günde bir ölçer; `DISK_ALERT_PERCENT` (85) aşılırsa Gatus "sunucu / disk" e-posta atar.
+- Kalıcı başarısız outbox işi (ör. e-fatura kesilemedi) `/health`'i 503 yapar → Gatus "Tüm bağımlılıklar" uyarısı.

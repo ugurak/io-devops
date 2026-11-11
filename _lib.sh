@@ -30,7 +30,17 @@ load_env() {
   source "$ENV_FILE"
   set +a
   APP_ROOT="${APP_ROOT:-/var/istanbulofset}"
+  load_image_tag
   derive_stack_env
+}
+
+# ./update.sh --tag <sha> ile seçilen sürüm (.image-tag, git dışı) .env'deki IMAGE_TAG'in önüne geçer;
+# deploy.sh / start.sh de aynı sürümü kullanır.
+load_image_tag() {
+  if [[ -f "$ROOT/.image-tag" ]]; then
+    IMAGE_TAG="$(tr -d ' \r\n' <"$ROOT/.image-tag")"
+    export IMAGE_TAG
+  fi
 }
 
 # İsteğe bağlı yığınlar (.env EXTRA_STACKS, boşlukla ayrılmış): clamav glitchtip observability

@@ -17,6 +17,8 @@ services:
       RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
       # Gatus yedek sinyali (monitoring/gatus.yaml → yedekleme_veritabani): başarısızlık / 26 saat sessizlik → e-posta.
       BACKUP_HEARTBEAT_URL: http://gatus:8080/api/v1/endpoints/yedekleme_veritabani/external
+      DISK_HEARTBEAT_URL: http://gatus:8080/api/v1/endpoints/sunucu_disk/external
+      DISK_ALERT_PERCENT: ${DISK_ALERT_PERCENT:-85}
       BACKUP_HEARTBEAT_TOKEN: ${BACKUP_HEARTBEAT_TOKEN:-${POSTGRES_PASSWORD}}
       TZ: Europe/Istanbul
     volumes:

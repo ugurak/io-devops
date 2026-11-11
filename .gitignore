@@ -13,3 +13,6 @@ backups/*.dump
 # Python
 __pycache__/
 *.pyc
+
+# update.sh --tag ile seçilen imaj sürümü (sunucuya özgü)
+.image-tag

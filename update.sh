@@ -4,6 +4,8 @@
 #   ./update.sh           # pull + up app + caddy
 #   ./update.sh --infra   # infra da yeniden up
 #   ./update.sh --prune
+#   ./update.sh --tag 4a1f83d   # geri dönüş: o commit'in imajı (CI her sürümü kısa SHA ile de etiketler)
+#   ./update.sh --tag latest    # geri dönüşten sonra güncele dön
 #
 set -euo pipefail
 
@@ -14,14 +16,21 @@ source "$ROOT/_lib.sh"
 DO_INFRA=false
 DO_PRUNE=false
 
-for arg in "$@"; do
+TAG_OVERRIDE=""
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"; shift
   case "$arg" in
     --pull) ;; # varsayılan davranış; geriye uyumluluk
     --infra) DO_INFRA=true ;;
     --prune) DO_PRUNE=true ;;
+    --tag) TAG_OVERRIDE="${1:?--tag için imaj etiketi (kısa SHA) gerekli}"; shift ;;
     -h|--help)
       cat <<'EOF'
-Kullanım: ./update.sh [--infra] [--prune]
+Kullanım: ./update.sh [--infra] [--prune] [--tag <kısa-sha|latest>]
+
+  --tag  Belirli sürüme geç / geri dön (ör. --tag 4a1f83d). Seçim .image-tag'de kalır; sonraki CI dağıtımı
+         kendi commit'inin etiketini yazar. --tag latest seçimi kaldırır.
 
   Registry imajları: istanbulofset-api / istanbulofset-web
   Yerel build+push:  registry/local-push.sh
@@ -37,6 +46,14 @@ done
 
 load_env
 ensure_network
+
+# Seçili sürüm .image-tag dosyasında tutulur (git dışı; .env'e dokunulmaz). --tag latest dosyayı siler.
+TAG_FILE="$ROOT/.image-tag"
+if [[ -n "$TAG_OVERRIDE" ]]; then
+  if [[ "$TAG_OVERRIDE" == latest ]]; then rm -f "$TAG_FILE"; else printf '%s\n' "$TAG_OVERRIDE" >"$TAG_FILE"; fi
+fi
+load_image_tag
+echo "  Çalışan sürüm: $(docker inspect -f '{{.Config.Image}}' istanbulofset-api 2>/dev/null || echo yok)"
 
 echo -e "${GREEN}=== İstanbul Ofset update ===${NC}"
 echo "  ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-latest}"

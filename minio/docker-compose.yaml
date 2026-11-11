@@ -36,6 +36,31 @@ services:
       istanbulofset-proxy:
         aliases: [minio]
 
+  # API'nin kısıtlı kullanıcısı (minio-setup.sh): yalnızca MINIO_BUCKET'a okuma/yazma. Root yalnızca yönetim için kalır.
+  # Aynı imajdaki mc kullanılır (ayrı imaj çekilmez). Her deploy'da güvenle tekrar çalışır.
+  minio-setup:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    container_name: istanbulofset-minio-setup
+    depends_on: [minio]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER gerekli}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD gerekli}
+      MINIO_BUCKET: ${MINIO_BUCKET:-istanbulofset-uploads}
+      MINIO_APP_USER: ${MINIO_APP_USER:-}
+      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD:-}
+    volumes:
+      - ./minio-setup.sh:/minio-setup.sh:ro
+    entrypoint: ["/bin/sh", "/minio-setup.sh"]
+    restart: "no"
+    labels:
+      - "com.istanbulofset.stack=true"
+      - "com.istanbulofset.service=minio-setup"
+      - "com.istanbulofset.maintainer=devops"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - istanbulofset-proxy
+
 volumes:
   miniodata:
     name: istanbulofset_miniodata

@@ -37,3 +37,13 @@ call PUT /_security/role/istanbulofset_log_writer \
   '{"cluster":["monitor","manage_index_templates","manage_ilm"],"indices":[{"names":["istanbulofset-logs-*"],"privileges":["write","create","create_index","manage","manage_ilm"]}]}' "istanbulofset_log_writer rolü"
 call PUT /_security/user/istanbulofset_logstash \
   "{\"password\":\"${LOGSTASH_ES_PASSWORD}\",\"roles\":[\"istanbulofset_log_writer\"],\"full_name\":\"Logstash\"}" "istanbulofset_logstash"
+
+# Günlük saklama: istanbulofset-logs-YYYY.MM.dd dizinleri LOG_RETENTION_DAYS (varsayılan 30) gün sonra silinir; disk dolmaz.
+# Şablon yeni dizinlere, _settings çağrısı mevcut dizinlere uygular.
+days="${LOG_RETENTION_DAYS:-30}"
+call PUT /_ilm/policy/istanbulofset-logs \
+  "{\"policy\":{\"phases\":{\"hot\":{\"actions\":{}},\"delete\":{\"min_age\":\"${days}d\",\"actions\":{\"delete\":{}}}}}}" "istanbulofset-logs ILM ($days gün)"
+call PUT /_index_template/istanbulofset-logs \
+  '{"index_patterns":["istanbulofset-logs-*"],"priority":200,"template":{"settings":{"index.lifecycle.name":"istanbulofset-logs","number_of_replicas":0}}}' "istanbulofset-logs şablonu"
+call PUT '/istanbulofset-logs-*/_settings?allow_no_indices=true' \
+  '{"index.lifecycle.name":"istanbulofset-logs"}' "mevcut günlük dizinleri"

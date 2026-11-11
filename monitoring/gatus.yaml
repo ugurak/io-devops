@@ -138,4 +138,16 @@ external-endpoints:
       interval: 26h
     alerts:
       - type: email
+        failure-threshold: 1   # günde bir sinyal: ilk başarısızlıkta haber ver
         description: "Veritabanı yedeği alınamadı veya 26 saattir sinyal yok"
+
+  # Disk doluluğu: backup.sh her gün df ile ölçer; DISK_ALERT_PERCENT (varsayılan %85) aşılınca başarısız bildirir.
+  - name: disk
+    group: sunucu
+    token: ${BACKUP_HEARTBEAT_TOKEN}
+    heartbeat:
+      interval: 26h
+    alerts:
+      - type: email
+        failure-threshold: 1
+        description: "Sunucu diski dolmak üzere (yedek, log, medya) veya 26 saattir ölçüm yok"

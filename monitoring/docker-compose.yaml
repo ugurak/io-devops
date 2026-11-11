@@ -16,6 +16,10 @@ services:
     environment:
       SITE_URL: https://${SITE_DOMAIN}
       API_URL: https://${API_DOMAIN}
+      # /ready ve /health dışarıya kapalı (nginx vhost.d → 404); iç ağdan doğrudan denetlenir.
+      API_INTERNAL_URL: http://api:8080
+      # Yedek sinyali belirteci (backup/docker-compose.yaml ile aynı).
+      BACKUP_HEARTBEAT_TOKEN: ${BACKUP_HEARTBEAT_TOKEN:-${POSTGRES_PASSWORD}}
       TLS_CHECKS: "true"
       ALERT_EMAIL: ${ALERT_EMAIL:-${ADMIN_EMAIL:-}}
       ALERT_FROM: ${ALERT_FROM:-izleme@${SITE_DOMAIN}}

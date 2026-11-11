@@ -29,6 +29,8 @@ services:
       Database__MigrateOnStartup: "true"
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY gerekli (en az 32 karakter)}
       Web__BaseUrl: https://${SITE_DOMAIN}
+      # Host başlığı süzgeci: yalnızca genel API adı ve iç ağ adları (Gatus/web → api:8080, healthcheck → 127.0.0.1).
+      AllowedHosts: "${API_DOMAIN};api;localhost;127.0.0.1"
       Cors__Origins__0: https://${SITE_DOMAIN}
       Proxy__KnownNetworks__0: 172.16.0.0/12
       Integrations__Payment: ${PAYMENT_PROVIDER:-iyzico}
@@ -45,6 +47,8 @@ services:
       Email__Password: ${SMTP_PASSWORD:-}
       Email__Security: ${SMTP_SECURITY:-StartTls}
       Email__From: ${SMTP_FROM:-İstanbul Ofset <siparis@istanbulofset.net>}
+      # Müşteri yanıtları bu adrese gider (boşsa gönderen adres; kurumsal destek kutusu önerilir).
+      Email__ReplyTo: ${SMTP_REPLY_TO:-}
       Iyzico__BaseUrl: ${IYZICO_BASE_URL:-https://api.iyzipay.com}
       Iyzico__ApiKey: ${IYZICO_API_KEY:-}
       Iyzico__SecretKey: ${IYZICO_SECRET_KEY:-}
@@ -113,8 +117,9 @@ services:
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
       # Site araması (Türkçe kök, yazım hatası toleransı); Elasticsearch yoksa yerel aramaya düşer.
       ELASTICSEARCH_URL: http://elasticsearch:9200
-      ELASTICSEARCH_USERNAME: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+      # Yalnızca istanbulofset-site* dizinlerine yetkili kullanıcı (elk/elastic-setup.sh oluşturur).
+      ELASTICSEARCH_USERNAME: istanbulofset_web
+      ELASTICSEARCH_PASSWORD: ${SEARCH_ES_PASSWORD:-${ELASTIC_PASSWORD}}
       # Sunucu ve tarayıcı hataları GlitchTip'e (kişisel veri gönderilmez).
       SENTRY_DSN: ${SENTRY_DSN_WEB:-}
       TZ: Europe/Istanbul

@@ -91,6 +91,14 @@ if [[ "$INFRA_ONLY" != true ]]; then
   if [[ -d /var/veraius/dev-ops/nginx/vhost.d ]]; then
     ln -sfn "$ROOT/nginx/vhost.d/api.istanbulofset.net_location" \
       /var/veraius/dev-ops/nginx/vhost.d/api.istanbulofset.net_location
+    # Sunucu düzeyi ek (/health, /ready dışarıya 404). Kopyalanır: nginx-proxy konteyneri io-devops yolunu görmez.
+    # nginx -t başarısızsa dosya geri alınır; proxy bozuk yapılandırmayla yeniden yüklenmez.
+    vhost=/var/veraius/dev-ops/nginx/vhost.d/api.istanbulofset.net
+    install -m 644 "$ROOT/nginx/vhost.d/api.istanbulofset.net" "$vhost"
+    if ! docker exec nginx-proxy nginx -t >/dev/null 2>&1; then
+      echo -e "${YELLOW}nginx -t başarısız; $vhost geri alındı${NC}"
+      rm -f "$vhost"
+    fi
     docker exec nginx-proxy nginx -s reload 2>/dev/null || true
   fi
 fi
@@ -99,6 +107,6 @@ echo ""
 echo -e "${GREEN}✓ Deploy tamam${NC}"
 stack_ps
 echo ""
-echo "Sağlık: https://${API_DOMAIN:-api.istanbulofset.net}/ready"
+echo "Sağlık: https://${API_DOMAIN:-api.istanbulofset.net}/live  (/ready ve /health yalnızca iç ağdan)"
 echo "Site:   https://${SITE_DOMAIN:-test.istanbulofset.net}"
 echo "Not:    TLS = veraius nginx-proxy + acme-companion"

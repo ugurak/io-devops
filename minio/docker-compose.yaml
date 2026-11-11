@@ -6,7 +6,8 @@ networks:
 services:
   # Bucket API ilk yazımda oluşturulur (S3FileStorage.EnsureBucket).
   minio:
-    image: pgsty/minio:latest
+    # Sürüme sabit: "latest" habersiz güncellenip veri biçimini değiştirebilir (yükseltme bilinçli yapılır).
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: istanbulofset-minio
     hostname: minio
     restart: unless-stopped

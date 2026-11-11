@@ -1,0 +1,10 @@
+# Sunucu düzeyi (server bloğu) ekleri — nginx-proxy bu dosyayı api.istanbulofset.net server bloğuna dahil eder.
+# Bu dosyayı veraius nginx vhost.d içine koyun / symlink:
+#   ln -sf /var/io/io-devops/nginx/vhost.d/api.istanbulofset.net \
+#          /var/veraius/dev-ops/nginx/vhost.d/api.istanbulofset.net
+# Sonra: docker exec nginx-proxy nginx -t && docker exec nginx-proxy nginx -s reload
+#
+# /health ve /ready bağımlılık durumunu (veritabanı, Redis, SMTP, MinIO…) gösterir: dışarıya kapalı.
+# Gatus iç ağdan (http://api:8080) denetler; dış izleme /live kullanır.
+location = /health { return 404; }
+location = /ready  { return 404; }

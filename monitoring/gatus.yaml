@@ -75,9 +75,18 @@ endpoints:
 
   - name: Veritabanı ve Redis
     group: API
-    url: ${API_URL}/ready
+    url: ${API_INTERNAL_URL}/ready
     <<: *defaults
     interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+
+  # Tüm bağımlılıklar: e-posta kuyruğu, SMTP, dosya deposu (MinIO), outbox… (/health dışarıya kapalı, iç ağdan).
+  - name: Tüm bağımlılıklar
+    group: API
+    url: ${API_INTERNAL_URL}/health
+    <<: *defaults
+    interval: 2m
     conditions:
       - "[STATUS] == 200"
 
@@ -118,3 +127,15 @@ endpoints:
     interval: 6h
     conditions:
       - "[CERTIFICATE_EXPIRATION] > 336h"
+
+# Yedek sinyali: backup.sh her başarılı pg_dump sonrası bildirir. 26 saat sinyal gelmezse (yedek alınamadı,
+# konteyner durdu) ya da başarısız bildirilirse e-posta uyarısı gider. Anahtar: <grup>_<ad> = yedekleme_veritabani.
+external-endpoints:
+  - name: veritabani
+    group: yedekleme
+    token: ${BACKUP_HEARTBEAT_TOKEN}
+    heartbeat:
+      interval: 26h
+    alerts:
+      - type: email
+        description: "Veritabanı yedeği alınamadı veya 26 saattir sinyal yok"

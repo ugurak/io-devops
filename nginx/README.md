@@ -13,6 +13,13 @@ ln -sf /var/io/io-devops/nginx/vhost.d/api.istanbulofset.net_location \
 docker exec nginx-proxy nginx -s reload
 ```
 
-3. DNS: `test.istanbulofset.net`, `www.test.istanbulofset.net`, `api.istanbulofset.net` → sunucu.
+3. `/health` ve `/ready` dışarıya kapalı (server düzeyi `vhost.d/api.istanbulofset.net`, `deploy.sh` kopyalar):
+
+```bash
+install -m 644 /var/io/io-devops/nginx/vhost.d/api.istanbulofset.net /var/veraius/dev-ops/nginx/vhost.d/
+docker exec nginx-proxy nginx -t && docker exec nginx-proxy nginx -s reload
+```
+
+4. DNS: `test.istanbulofset.net`, `www.test.istanbulofset.net`, `api.istanbulofset.net` → sunucu.
 
 Caddy container’ı varsa kaldırın: `docker rm -f istanbulofset-caddy`

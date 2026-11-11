@@ -54,13 +54,16 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+      elastic-setup:
+        condition: service_completed_successfully
     volumes:
       - ./logstash/pipeline.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     environment:
       LS_JAVA_OPTS: -Xms256m -Xmx256m
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-      ELASTIC_USER: elastic
-      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      # Yalnızca istanbulofset-logs-* dizinlerine yazabilen kullanıcı (elastic-setup oluşturur).
+      ELASTIC_USER: istanbulofset_logstash
+      ELASTIC_PASSWORD: ${LOGSTASH_ES_PASSWORD:-${ELASTIC_PASSWORD}}
       TZ: Europe/Istanbul
     deploy:
       resources:
@@ -80,7 +83,7 @@ services:
       istanbulofset-proxy:
         aliases: [logstash]
 
-  # Kibana 8 "elastic" süper kullanıcısıyla açılmaz (FATAL); yerleşik kibana_system kullanıcısının şifresini ayarlar.
+  # Kibana 8 "elastic" süper kullanıcısıyla açılmaz (FATAL): kibana_system şifresi ve web/logstash'in kısıtlı kullanıcıları burada hazırlanır.
   elastic-setup:
     image: curlimages/curl:8.10.1
     container_name: istanbulofset-elastic-setup
@@ -90,6 +93,8 @@ services:
     environment:
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-${ELASTIC_PASSWORD}}
+      SEARCH_ES_PASSWORD: ${SEARCH_ES_PASSWORD:-${ELASTIC_PASSWORD}}
+      LOGSTASH_ES_PASSWORD: ${LOGSTASH_ES_PASSWORD:-${ELASTIC_PASSWORD}}
     volumes:
       - ./elastic-setup.sh:/elastic-setup.sh:ro
     entrypoint: ["/bin/sh", "/elastic-setup.sh"]

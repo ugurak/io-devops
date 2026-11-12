@@ -28,6 +28,9 @@ load_env() {
   # Boşluklu değerler tırnaklı olmalı (örn. ES_JAVA_OPTS="-Xms512m -Xmx512m")
   # shellcheck source=/dev/null
   source "$ENV_FILE"
+  # Git'e girmeyen sırlar (ör. GitHub'ın engellediği Google Drive anahtarı): .env.local varsa .env'in üzerine yazar.
+  # shellcheck source=/dev/null
+  [[ -f "$ROOT/.env.local" ]] && source "$ROOT/.env.local"
   set +a
   APP_ROOT="${APP_ROOT:-/var/istanbulofset}"
   load_image_tag

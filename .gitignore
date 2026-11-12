@@ -16,3 +16,6 @@ __pycache__/
 
 # update.sh --tag ile seçilen imaj sürümü (sunucuya özgü)
 .image-tag
+
+# Git dışı sırlar (sunucuda elle; _lib.sh load_env okur)
+.env.local

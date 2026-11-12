@@ -33,6 +33,7 @@ services:
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=backup"
+      - "com.istanbulofset.config-hash=${STACK_CONFIG_HASH:-}"
       - "com.istanbulofset.maintainer=devops"
     security_opt:
       - no-new-privileges:true
@@ -81,6 +82,7 @@ services:
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=offsite"
+      - "com.istanbulofset.config-hash=${STACK_CONFIG_HASH:-}"
       - "com.istanbulofset.maintainer=devops"
     security_opt:
       - no-new-privileges:true

@@ -34,6 +34,7 @@ services:
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=otel-collector"
+      - "com.istanbulofset.config-hash=${STACK_CONFIG_HASH:-}"
       - "com.istanbulofset.maintainer=devops"
     networks:
       istanbulofset-proxy:
@@ -86,6 +87,7 @@ services:
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=prometheus"
+      - "com.istanbulofset.config-hash=${STACK_CONFIG_HASH:-}"
       - "com.istanbulofset.maintainer=devops"
     networks:
       istanbulofset-proxy:

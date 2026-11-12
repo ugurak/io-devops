@@ -49,6 +49,7 @@ services:
     labels:
       - "com.istanbulofset.stack=true"
       - "com.istanbulofset.service=gatus"
+      - "com.istanbulofset.config-hash=${STACK_CONFIG_HASH:-}"
       - "com.istanbulofset.maintainer=devops"
     security_opt:
       - no-new-privileges:true

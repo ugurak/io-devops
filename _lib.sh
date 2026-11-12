@@ -150,12 +150,24 @@ compose_project_for() {
   echo "${COMPOSE_PROJECT_PREFIX}-$(echo "$dir" | tr '/.' '-')"
 }
 
+# Bir yığın klasöründeki dosyaların kısa özeti (veri klasörleri hariç).
+stack_config_hash() {
+  local sum=sha256sum
+  command -v sha256sum >/dev/null 2>&1 || sum="shasum -a 256"
+  (cd "$1" && find . -type f ! -path './data/*' ! -path '*/data/*' -print 2>/dev/null | LC_ALL=C sort \
+    | while read -r f; do $sum "$f"; done | $sum | cut -c1-12)
+}
+
 compose() {
   local dir="$1"
   shift
   local project
   project="$(compose_project_for "$dir")"
-  (cd "$ROOT/$dir" && docker compose \
+  # Tek dosya olarak bağlanan betik/yapılandırmalar (backup.sh, gatus.yaml…) git pull'da yeni dosya olur; çalışan
+  # konteyner eskisini görmeye devam eder. Klasörün özeti etikete yazılır: dosya değişince konteyner yeniden oluşur.
+  local STACK_CONFIG_HASH
+  STACK_CONFIG_HASH="$(stack_config_hash "$ROOT/$dir")"
+  (cd "$ROOT/$dir" && STACK_CONFIG_HASH="$STACK_CONFIG_HASH" docker compose \
     --project-name "$project" \
     --env-file "$ENV_FILE" \
     -f docker-compose.yaml \

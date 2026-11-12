@@ -79,7 +79,10 @@ case "${1:-sync}" in
     log "medya eşitleniyor: minio:$MINIO_BUCKET"
     rclone sync "minio:$MINIO_BUCKET" secure:media \
       --backup-dir "secure:media-deleted/$(date -u +%Y%m%d)" --fast-list --stats-one-line --stats 0
-    rclone delete secure:media-deleted --min-age "${retention}d" --rmdirs
+    # Henüz silinmiş medya yoksa klasör de yoktur ("directory not found"); o durumda temizlenecek bir şey yok.
+    if rclone lsf secure:media-deleted --max-depth 1 >/dev/null 2>&1; then
+      rclone delete secure:media-deleted --min-age "${retention}d" --rmdirs
+    fi
 
     count="$(rclone lsf secure:db | wc -l | tr -d ' ')"
     log "tamam ($target) — hedefte $count veritabanı yedeği"

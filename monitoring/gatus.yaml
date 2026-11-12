@@ -90,6 +90,18 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 
+  # Arama ve günlük kümesi: "red" = birincil parça yok, site araması/log yazımı bozulur. "yellow" tek düğümde olağan.
+  - name: Elasticsearch
+    group: Altyapı
+    url: http://elasticsearch:9200/_cluster/health
+    headers:
+      Authorization: "Basic ${ES_MONITOR_BASIC}"
+    <<: *defaults
+    interval: 2m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status != red"
+
   - name: Katalog
     group: API
     url: ${API_URL}/api/v1/catalog
@@ -162,3 +174,14 @@ external-endpoints:
       - type: email
         failure-threshold: 1
         description: "Sunucu diski dolmak üzere (yedek, log, medya) veya 26 saattir ölçüm yok"
+
+  # Aylık geri yükleme tatbikatı (backup.sh → restore_drill): son yedek geçici veritabanına açılıp doğrulanır.
+  - name: geriyukleme
+    group: yedekleme
+    token: ${BACKUP_HEARTBEAT_TOKEN}
+    heartbeat:
+      interval: 800h   # ~33 gün: ayda bir sinyal beklenir
+    alerts:
+      - type: email
+        failure-threshold: 1
+        description: "Aylık geri yükleme tatbikatı başarısız: son yedek açılamadı veya 33 gündür tatbikat yapılmadı"

@@ -134,6 +134,7 @@ Sıra: ELK → Postgres/Redis → MinIO → backup → Gatus → EXTRA_STACKS �
 ./deploy.sh --infra-only   # yalnızca altyapı
 ./deploy.sh --app-only     # api/web + caddy (pull)
 ./update.sh                # registry pull + recreate
+./update.sh --infra-pull     # ayda bir: postgres/redis/elk… imajlarının yamalı sürümünü çek + yeniden başlat
 ./stop.sh                  # stop
 ./down.sh                  # app+caddy down
 ./down.sh --all            # tüm stack
@@ -246,3 +247,17 @@ ilkeyi oluşturur. Boş bırakılırsa API root kullanıcısıyla devam eder.
 - Denetim kayıtları 2 yıl tutulur.
 - `backup.sh` diski günde bir ölçer; `DISK_ALERT_PERCENT` (85) aşılırsa Gatus "sunucu / disk" e-posta atar.
 - Kalıcı başarısız outbox işi (ör. e-fatura kesilemedi) `/health`'i 503 yapar → Gatus "Tüm bağımlılıklar" uyarısı.
+
+## Bakım ve izleme (otomatik)
+
+- **Geri yükleme tatbikatı:** yedek konteyneri ayda bir son `pg_dump`'ı geçici `restore_check` veritabanına açar,
+  sipariş/kullanıcı sayar ve siler. Başarısızsa veya 33 gün tatbikat yoksa Gatus (`yedekleme_geriyukleme`) e-posta atar.
+  Elle: `docker exec istanbulofset-backup sh -c 'rm -f /backups/.restore-check; sh /backup.sh'`
+- **Uyarılar:** Elasticsearch `_cluster/health` "red" olunca (izleme kullanıcısı `istanbulofset_monitor`);
+  Redis belleği %90'ı aşınca veya e-posta kuyruğu 1 saat takılınca (`/health` 503).
+- **İmaj yamaları:** altyapı imajları ana sürümde sabit (ör. `postgres:17-alpine`); `./update.sh --infra-pull` aynı
+  etiketin güvenlik yamalarını çeker. api/web imajları her derlemede taban imajı yeniden çeker (`--pull`).
+- **Postgres ayarı** (4 GB sınırına göre; `.env` ile değiştirilebilir): `PG_SHARED_BUFFERS` (1GB),
+  `PG_EFFECTIVE_CACHE_SIZE` (3GB), `PG_WORK_MEM` (16MB), `PG_MAINTENANCE_WORK_MEM` (256MB), `PG_MAX_CONNECTIONS` (150),
+  `PG_SLOW_QUERY_MS` (1000; yavaş sorgular günlüğe). API havuzu: `API_DB_POOL_SIZE` (50).
+  İsteğe bağlı: `MONITOR_ES_PASSWORD` (boşsa `ELASTIC_PASSWORD`).

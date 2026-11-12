@@ -65,6 +65,9 @@ derive_stack_env() {
     [[ -n "${GLITCHTIP_WEB_KEY:-}" ]] && export SENTRY_DSN_WEB="${SENTRY_DSN_WEB:-http://${GLITCHTIP_WEB_KEY}@glitchtip:8000/2}"
     [[ -n "${GLITCHTIP_HOST:-}" ]] && export GLITCHTIP_DOMAIN="${GLITCHTIP_DOMAIN:-https://${GLITCHTIP_HOST}}"
   fi
+  # Gatus → Elasticsearch küme sağlığı (istanbulofset_monitor kullanıcısı, elk/elastic-setup.sh).
+  local es_monitor_pw="${MONITOR_ES_PASSWORD:-${ELASTIC_PASSWORD:-}}"
+  [[ -n "$es_monitor_pw" ]] && export ES_MONITOR_BASIC="${ES_MONITOR_BASIC:-$(printf 'istanbulofset_monitor:%s' "$es_monitor_pw" | base64 | tr -d '\n')}"
   return 0
 }
 

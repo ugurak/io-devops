@@ -24,6 +24,8 @@ services:
       API_INTERNAL_URL: http://api:8080
       # Yedek sinyali belirteci (backup/docker-compose.yaml ile aynı).
       BACKUP_HEARTBEAT_TOKEN: ${BACKUP_HEARTBEAT_TOKEN:-${POSTGRES_PASSWORD}}
+      # Elasticsearch küme sağlığı için Basic kimlik (_lib.sh derive_stack_env üretir).
+      ES_MONITOR_BASIC: ${ES_MONITOR_BASIC:-}
       TLS_CHECKS: "true"
       ALERT_EMAIL: ${ALERT_EMAIL:-${ADMIN_EMAIL:-}}
       ALERT_FROM: ${ALERT_FROM:-izleme@${SITE_DOMAIN}}

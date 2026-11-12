@@ -38,6 +38,11 @@ call PUT /_security/role/istanbulofset_log_writer \
 call PUT /_security/user/istanbulofset_logstash \
   "{\"password\":\"${LOGSTASH_ES_PASSWORD}\",\"roles\":[\"istanbulofset_log_writer\"],\"full_name\":\"Logstash\"}" "istanbulofset_logstash"
 
+# İzleme (Gatus): yalnızca küme sağlığını okur (cluster:monitor); _cluster/health "red" olunca e-posta.
+call PUT /_security/role/istanbulofset_monitor '{"cluster":["monitor"]}' "istanbulofset_monitor rolü"
+call PUT /_security/user/istanbulofset_monitor \
+  "{\"password\":\"${MONITOR_ES_PASSWORD}\",\"roles\":[\"istanbulofset_monitor\"],\"full_name\":\"Gatus izleme\"}" "istanbulofset_monitor"
+
 # Günlük saklama: istanbulofset-logs-YYYY.MM.dd dizinleri LOG_RETENTION_DAYS (varsayılan 30) gün sonra silinir; disk dolmaz.
 # Şablon yeni dizinlere, _settings çağrısı mevcut dizinlere uygular.
 days="${LOG_RETENTION_DAYS:-30}"

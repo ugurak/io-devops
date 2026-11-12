@@ -28,7 +28,7 @@ services:
       retries: 12
       start_period: 30s
     environment:
-      ConnectionStrings__Default: Host=postgres;Database=${POSTGRES_DB:-istanbulofset};Username=${POSTGRES_USER:-istanbulofset};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Default: Host=postgres;Database=${POSTGRES_DB:-istanbulofset};Username=${POSTGRES_USER:-istanbulofset};Password=${POSTGRES_PASSWORD};Maximum Pool Size=${API_DB_POOL_SIZE:-50}
       ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
       Database__MigrateOnStartup: "true"
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY gerekli (en az 32 karakter)}

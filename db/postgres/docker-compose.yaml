@@ -13,6 +13,27 @@ services:
       options: { max-size: "10m", max-file: "3" }
     hostname: postgres
     restart: unless-stopped
+    # 4 GB sınırına göre ayar (varsayılanlar 128 MB önbellek / 100 bağlantı). Değerler .env'den değiştirilebilir.
+    # API havuzu en çok 50 bağlantı açar (ConnectionStrings: Maximum Pool Size); GlitchTip ve yedek için pay kalır.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-1GB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-3GB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-16MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-256MB}
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-150}
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - wal_compression=on
+      - -c
+      - log_min_duration_statement=${PG_SLOW_QUERY_MS:-1000}
+    shm_size: 1g
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-istanbulofset}
       POSTGRES_USER: ${POSTGRES_USER:-istanbulofset}

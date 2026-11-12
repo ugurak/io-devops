@@ -3,6 +3,7 @@
 #
 #   ./update.sh           # pull + up app + caddy
 #   ./update.sh --infra   # infra da yeniden up
+#   ./update.sh --infra-pull  # infra imajlarının güvenlik yamalarını çek + yeniden başlat (ayda bir)
 #   ./update.sh --prune
 #   ./update.sh --tag 4a1f83d   # geri dönüş: o commit'in imajı (CI her sürümü kısa SHA ile de etiketler)
 #   ./update.sh --tag latest    # geri dönüşten sonra güncele dön
@@ -14,6 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$ROOT/_lib.sh"
 
 DO_INFRA=false
+DO_INFRA_PULL=false
 DO_PRUNE=false
 
 TAG_OVERRIDE=""
@@ -23,11 +25,15 @@ while [[ $# -gt 0 ]]; do
   case "$arg" in
     --pull) ;; # varsayılan davranış; geriye uyumluluk
     --infra) DO_INFRA=true ;;
+    --infra-pull) DO_INFRA=true; DO_INFRA_PULL=true ;;
     --prune) DO_PRUNE=true ;;
     --tag) TAG_OVERRIDE="${1:?--tag için imaj etiketi (kısa SHA) gerekli}"; shift ;;
     -h|--help)
       cat <<'EOF'
-Kullanım: ./update.sh [--infra] [--prune] [--tag <kısa-sha|latest>]
+Kullanım: ./update.sh [--infra] [--infra-pull] [--prune] [--tag <kısa-sha|latest>]
+
+  --infra-pull  postgres:17-alpine, redis:7-alpine vb. ana sürümü sabit imajların yama sürümlerini çeker
+                ve değişen konteynerleri yeniden başlatır (kısa kesinti). Ayda bir çalıştırın.
 
   --tag  Belirli sürüme geç / geri dön (ör. --tag 4a1f83d). Seçim .image-tag'de kalır; sonraki CI dağıtımı
          kendi commit'inin etiketini yazar. --tag latest seçimi kaldırır.
@@ -60,6 +66,8 @@ echo "  ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-*:${IMAGE_TAG:-la
 
 if [[ "$DO_INFRA" == true ]]; then
   while read -r d; do
+    # Ana sürüm etiketi sabit (ör. postgres:17-alpine); --infra-pull aynı etiketin yamalı imajını çeker.
+    [[ "$DO_INFRA_PULL" == true ]] && compose "$d" pull --ignore-pull-failures
     compose "$d" up -d
   done < <(infra_dirs)
 fi

@@ -259,10 +259,40 @@ pre_deploy() {
     return 0
   fi
   echo "Veritabanı geçişleri (yeni imaj, --migrate-only)…"
-  if ! timeout 900 docker compose --project-name "$(compose_project_for app)" --env-file "$ENV_FILE" \
-      -f "$ROOT/app/docker-compose.yaml" run --rm --no-deps -T api --migrate-only; then
+  if ! run_migrations; then
     echo -e "${RED}Veritabanı geçişi başarısız — uygulama güncellenmedi, eski sürüm çalışıyor.${NC}" >&2
     echo "Geri dönmek için yedek: docker exec istanbulofset-backup ls /backups | grep predeploy" >&2
     return 1
   fi
+}
+
+# Geçiş konteyneri arka planda başlatılır; terminale bağlanmadığı için etkileşimli SSH oturumunda da takılmaz.
+# Başarı: konteyner 0 ile çıkar ya da "geçişleri tamam" yazar (süreç açık kalsa bile durdurulur). En çok 15 dk.
+run_migrations() {
+  local name=istanbulofset-migrate cid status code waited=0 seen=0
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  cid="$(compose app run -d --no-deps --name "$name" api --migrate-only)" || return 1
+  while (( waited < 900 )); do
+    status="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || echo yok)"
+    if [[ "$status" == exited || "$status" == dead ]]; then
+      code="$(docker inspect -f '{{.State.ExitCode}}' "$name")"
+      docker logs --tail 3 "$name" 2>&1 | cut -c1-200
+      docker rm -f "$name" >/dev/null 2>&1 || true
+      [[ "$code" == 0 ]]; return
+    fi
+    if docker logs "$name" 2>&1 | grep -q "Veritabanı geçişleri tamam"; then
+      seen=$((seen + 1))
+      # Çıkması için 10 sn tanınır; hâlâ açıksa başarı sayılıp durdurulur.
+      if (( seen >= 5 )); then
+        echo "Geçişler tamam (konteyner kendiliğinden kapanmadı, durduruldu)"
+        docker rm -f "$name" >/dev/null 2>&1 || true
+        return 0
+      fi
+    fi
+    sleep 2; waited=$((waited + 2))
+  done
+  echo -e "${RED}Geçiş 15 dakikada bitmedi.${NC}" >&2
+  docker logs --tail 20 "$name" 2>&1 | cut -c1-200 >&2
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  return 1
 }

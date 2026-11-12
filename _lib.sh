@@ -64,6 +64,19 @@ stack_enabled() {
   [[ " ${EXTRA_STACKS:-} " == *" $1 "* ]]
 }
 
+# URL içinde kullanıcı/şifre için yüzde kodlama (ör. @ : / içeren şifreler).
+urlencode() {
+  local s="$1" out="" c i
+  for (( i = 0; i < ${#s}; i++ )); do
+    c="${s:i:1}"
+    case "$c" in
+      [a-zA-Z0-9._~-]) out+="$c" ;;
+      *) out+="$(printf '%%%02X' "'$c")" ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
 # Açık yığınlara göre uygulama bağlantılarını üretir (.env'de elle verilmişse ona dokunmaz).
 # Kabuk ortamı --env-file'dan önce gelir; compose bu değerleri görür.
 derive_stack_env() {
@@ -77,6 +90,13 @@ derive_stack_env() {
     [[ -n "${GLITCHTIP_API_KEY:-}" ]] && export SENTRY_DSN_API="${SENTRY_DSN_API:-http://${GLITCHTIP_API_KEY}@glitchtip:8000/1}"
     [[ -n "${GLITCHTIP_WEB_KEY:-}" ]] && export SENTRY_DSN_WEB="${SENTRY_DSN_WEB:-http://${GLITCHTIP_WEB_KEY}@glitchtip:8000/2}"
     [[ -n "${GLITCHTIP_HOST:-}" ]] && export GLITCHTIP_DOMAIN="${GLITCHTIP_DOMAIN:-https://${GLITCHTIP_HOST}}"
+    # GlitchTip uyarı e-postaları uygulamanın SMTP ayarlarıyla gider (465 → SSL, diğerleri → STARTTLS).
+    if [[ -z "${GLITCHTIP_EMAIL_URL:-}" && -n "${SMTP_HOST:-}" ]]; then
+      local scheme=smtp+tls auth=""
+      [[ "${SMTP_PORT:-587}" == 465 ]] && scheme=smtp+ssl
+      [[ -n "${SMTP_USER:-}" ]] && auth="$(urlencode "$SMTP_USER"):$(urlencode "${SMTP_PASSWORD:-}")@"
+      export GLITCHTIP_EMAIL_URL="${scheme}://${auth}${SMTP_HOST}:${SMTP_PORT:-587}"
+    fi
   fi
   # Gatus → Elasticsearch küme sağlığı (istanbulofset_monitor kullanıcısı, elk/elastic-setup.sh).
   local es_monitor_pw="${MONITOR_ES_PASSWORD:-${ELASTIC_PASSWORD:-}}"

@@ -43,6 +43,19 @@ load_image_tag() {
   fi
 }
 
+# api/web imajlarını çeker. Seçili etiket (.image-tag) registry'de yoksa (ör. o commit'in imajı hiç gönderilmemiş)
+# uyarır, seçimi kaldırır ve :latest ile devam eder; dağıtım eski bir etiket yüzünden takılı kalmaz.
+pull_app_images() {
+  compose app pull && return 0
+  if [[ "${IMAGE_TAG:-latest}" != latest ]]; then
+    echo -e "${YELLOW}Uyarı: istanbulofset-*:${IMAGE_TAG} registry'de yok; .image-tag kaldırıldı, :latest kullanılıyor.${NC}" >&2
+    rm -f "$ROOT/.image-tag"
+    export IMAGE_TAG=latest
+    compose app pull && return 0
+  fi
+  return 1
+}
+
 # İsteğe bağlı yığınlar (.env EXTRA_STACKS, boşlukla ayrılmış): clamav glitchtip observability
 # Gatus (monitoring) her zaman açıktır. Bellek: clamav ~1,5G, glitchtip ~0,5G, observability ~0,7G.
 OPTIONAL_STACKS=(clamav glitchtip observability)

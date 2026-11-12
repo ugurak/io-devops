@@ -94,7 +94,7 @@ if [[ "$INFRA_ONLY" != true ]]; then
   echo "  web:   https://${SITE_DOMAIN}"
   echo "  api:   https://${API_DOMAIN}"
   ensure_registry_login
-  compose app pull
+  pull_app_images
   pre_deploy
   compose app up -d
   wait_healthy istanbulofset-api 90 || true

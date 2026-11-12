@@ -46,9 +46,16 @@ scheme, host = domain.split("://", 1)
 for name, platform, env_key in [("API", "csharp-aspnetcore", "GLITCHTIP_API_KEY"), ("Web", "javascript-nextjs", "GLITCHTIP_WEB_KEY")]:
     project = Project.objects.filter(organization=org, name=name).first() or Project.objects.create(organization=org, name=name, platform=platform)
     team.projects.add(project)
-    key = ProjectKey.objects.filter(project=project).order_by("pk").first() or ProjectKey.objects.create(project=project)
-    wanted = os.environ.get(env_key)
-    if wanted and str(key.public_key) != wanted.lower():
-        ProjectKey.objects.filter(pk=key.pk).update(public_key=uuid.UUID(wanted))
+    wanted = (os.environ.get(env_key) or "").strip().lower()
+    # İstenen anahtar zaten varsa onu kullan (projeye ait değilse bu projeye taşı); yoksa projenin ilk anahtarına yaz.
+    # Böylece kurulum her açılışta tekrar çalışsa da "public_key already exists" hatası vermez.
+    key = ProjectKey.objects.filter(public_key=uuid.UUID(wanted)).first() if wanted else None
+    if key and key.project_id != project.id:
+        ProjectKey.objects.filter(pk=key.pk).update(project=project)
         key.refresh_from_db()
+    if key is None:
+        key = ProjectKey.objects.filter(project=project).order_by("pk").first() or ProjectKey.objects.create(project=project)
+        if wanted and str(key.public_key) != wanted:
+            ProjectKey.objects.filter(pk=key.pk).update(public_key=uuid.UUID(wanted))
+            key.refresh_from_db()
     print(f"{name} DSN: {scheme}://{key.public_key}@{host.rstrip('/')}/{project.id}")

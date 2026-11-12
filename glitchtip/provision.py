@@ -34,7 +34,15 @@ email = os.environ["GLITCHTIP_ADMIN_EMAIL"]
 User = get_user_model()
 user = User.objects.filter(email=email).first() or User.objects.create_superuser(email=email, password=os.environ["GLITCHTIP_ADMIN_PASSWORD"])
 
-org, _ = Organization.objects.get_or_create(slug="istanbulofset", defaults={"name": "İstanbul Ofset"})
+# GlitchTip slug'ı addan kendisi üretir ("istanbul-ofset"); slug ile aramak her açılışta yeni organizasyon açıyordu.
+# Ada göre en eski organizasyon kullanılır (DSN'lerdeki proje no'ları /1 ve /2 ona ait); kurulumun önceki
+# sürümlerinin açtığı kopyalar silinir.
+ORG_NAME = "İstanbul Ofset"
+org = Organization.objects.filter(name=ORG_NAME).order_by("pk").first() or Organization.objects.create(name=ORG_NAME)
+duplicates = Organization.objects.filter(name=ORG_NAME).exclude(pk=org.pk)
+if duplicates.exists():
+    print(f"kopya organizasyonlar siliniyor: {list(duplicates.values_list('pk', flat=True))}")
+    duplicates.delete()
 member, _ = OrganizationUser.objects.get_or_create(organization=org, user=user, defaults={"role": OrganizationUserRole.OWNER})
 if not OrganizationOwner.objects.filter(organization=org).exists():
     OrganizationOwner.objects.create(organization=org, organization_user=member)

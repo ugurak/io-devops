@@ -18,9 +18,9 @@ services:
     command:
       - postgres
       - -c
-      - shared_buffers=${PG_SHARED_BUFFERS:-1GB}
+      - shared_buffers=${PG_SHARED_BUFFERS:-1280MB}
       - -c
-      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-3GB}
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-3584MB}
       - -c
       - work_mem=${PG_WORK_MEM:-16MB}
       - -c

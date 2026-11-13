@@ -29,7 +29,7 @@ services:
       TZ: Europe/Istanbul
     deploy:
       resources:
-        limits: { cpus: "0.25", memory: 256M }
+        limits: { cpus: "0.2", memory: 256M }
         reservations: { cpus: "0.05", memory: 64M }
     labels:
       - "com.istanbulofset.stack=true"
@@ -55,7 +55,7 @@ services:
       TZ: Europe/Istanbul
     deploy:
       resources:
-        limits: { cpus: "0.25", memory: 384M }
+        limits: { cpus: "0.2", memory: 384M }
         reservations: { cpus: "0.05", memory: 64M }
     labels:
       - "com.istanbulofset.stack=true"
@@ -82,7 +82,7 @@ services:
       TZ: Europe/Istanbul
     deploy:
       resources:
-        limits: { cpus: "0.25", memory: 384M }
+        limits: { cpus: "0.2", memory: 384M }
         reservations: { cpus: "0.05", memory: 64M }
     labels:
       - "com.istanbulofset.stack=true"
@@ -116,7 +116,7 @@ services:
     entrypoint: ["/bin/sh", "-c", "[ -n \"$$GF_SECURITY_ADMIN_PASSWORD\" ] || { echo 'GRAFANA_ADMIN_PASSWORD gerekli'; exit 1; }; exec /run.sh"]
     deploy:
       resources:
-        limits: { cpus: "0.25", memory: 256M }
+        limits: { cpus: "0.2", memory: 256M }
         reservations: { cpus: "0.05", memory: 64M }
     labels:
       - "com.istanbulofset.stack=true"

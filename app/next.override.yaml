@@ -1,0 +1,7 @@
+# Kesintisiz güncelleme (_lib.sh rolling_update): yeni sürüm önce bu adlarla, ayrı bir compose projesinde açılır.
+# VIRTUAL_HOST ve "api"/"web" ağ takma adları aynı kalır: nginx-proxy ve web→api istekleri iki konteyneri birlikte dağıtır.
+services:
+  api:
+    container_name: istanbulofset-api-next
+  web:
+    container_name: istanbulofset-web-next

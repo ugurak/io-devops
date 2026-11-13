@@ -133,7 +133,7 @@ Sıra: ELK → Postgres/Redis → MinIO → backup → Gatus → EXTRA_STACKS �
 ```bash
 ./deploy.sh --infra-only   # yalnızca altyapı
 ./deploy.sh --app-only     # api/web + caddy (pull)
-./update.sh                # registry pull + recreate
+./update.sh                # git pull + registry pull + kesintisiz geçiş (api, sonra web)
 ./update.sh --infra-pull     # ayda bir: postgres/redis/elk… imajlarının yamalı sürümünü çek + yeniden başlat
 ./stop.sh                  # stop
 ./down.sh                  # app+caddy down
@@ -233,6 +233,21 @@ Seçilen etiket `.image-tag` dosyasında durur (git dışı); `deploy.sh` ve `st
 Veritabanı geçişleri geri alınmaz: eski sürüm yeni şemayla çalışır (geçişler yalnızca ekleme yapar).
 Her dağıtımdan önce `predeploy-*.dump` yedeği alınır (2 gün tutulur) ve geçişler yeni imajla ayrıca çalışır;
 geçiş başarısızsa eski sürüm çalışmaya devam eder. f1fb59e'den eski bir imaja dönerken: `NO_MIGRATE=1 ./update.sh --tag <sha>`.
+
+### Kesintisiz geçiş
+
+`update.sh` (ve `deploy.sh`) api ile web'i kapatıp açmaz; `_lib.sh` → `rolling_update`:
+
+1. Yeni imaj geçici `istanbulofset-<servis>-next` konteynerinde açılır (`app/next.override.yaml`, ayrı compose projesi).
+   Aynı `VIRTUAL_HOST` ve ağ takma adı sayesinde nginx-proxy trafiği eski ve yeni konteynere birlikte dağıtır.
+2. `-next` hazır olunca (api `/live`, web `robots.txt` + ana sayfa ısıtma) 12 sn beklenir, asıl konteyner yeni imajla
+   yeniden yaratılır; bu sırada trafiği `-next` taşır. Bağlantıyı reddeden sunucuya giden istek nginx'te diğerine aktarılır.
+3. Asıl konteyner hazır olunca 12 sn sonra `-next` kaldırılır.
+
+Yeni sürüm açılmazsa eski sürüm yayında kalır ve betik hata verir. Asıl konteyner açılmazsa trafik `-next`'te kalır;
+sorunu giderip `./update.sh`'ı yeniden çalıştırın. 12 sn, nginx'in açılış sırasında reddedilen sunucuyu "ölü" saydığı
+`fail_timeout` (10 sn) süresinden uzun olmalıdır (`ROLLING_SETTLE_SECONDS`). Kısa süre iki sürüm birlikte çalıştığından
+geçişler geriye uyumlu olmalıdır (zaten yalnızca ekleme yapılır).
 
 ## MinIO uygulama kullanıcısı
 

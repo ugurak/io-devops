@@ -11,6 +11,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Önce depodaki son betikleri al (deploy.sh ile aynı); NO_PULL=1 ile atlanır.
+if [[ -z "${IO_DEPLOY_PULLED:-}" && -z "${NO_PULL:-}" && -d "$ROOT/.git" ]]; then
+  if git -C "$ROOT" pull --ff-only -q; then
+    IO_DEPLOY_PULLED=1 exec "$ROOT/update.sh" "$@"
+  fi
+  echo "UYARI: git pull başarısız; mevcut dosyalarla devam ediliyor" >&2
+fi
 # shellcheck source=_lib.sh
 source "$ROOT/_lib.sh"
 
@@ -76,7 +84,9 @@ docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 ensure_registry_login
 pull_app_images
 pre_deploy
-compose app up -d --force-recreate
+# Kesintisiz: önce api (yeni web yeni API'yi bekler), sonra web. Eski ve yeni sürüm kısa süre birlikte yayındadır.
+rolling_update api
+rolling_update web
 
 if [[ "$DO_PRUNE" == true ]]; then
   docker image prune -f || true

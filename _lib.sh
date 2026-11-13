@@ -271,6 +271,84 @@ wait_http_ready() {
   return 1
 }
 
+# --- Kesintisiz güncelleme ----------------------------------------------------------------------------------------
+# nginx-proxy aynı VIRTUAL_HOST'lu tüm konteynerleri tek upstream'de toplar; kapanan/açılmamış konteynere giden istek
+# (bağlantı reddi) diğerine aktarılır. Sıra: (1) yeni imajla geçici "-next" konteyneri açılır ve hazır olması beklenir,
+# (2) asıl konteyner yeni imajla yeniden yaratılır (bu sırada trafiği -next taşır), (3) asıl hazır olunca -next kaldırılır.
+# Konteyner adları (istanbulofset-api / -web) değişmez; yedek, izleme ve diğer betikler etkilenmez.
+
+compose_next() {
+  local project
+  project="$(compose_project_for app)-next"
+  (cd "$ROOT/app" && docker compose \
+    --project-name "$project" \
+    --env-file "$ENV_FILE" \
+    -f docker-compose.yaml -f next.override.yaml \
+    "$@")
+}
+
+# Konteynerin içinden hazır olma denetimi (healthcheck aralığını beklemeden). api: /live, web: robots.txt.
+app_ready() {
+  local container="$1" service="$2"
+  case "$service" in
+    api) docker exec "$container" bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /live HTTP/1.0\r\n\r\n" >&3 && head -1 <&3 | grep -q " 200"' >/dev/null 2>&1 ;;
+    web) docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/robots.txt").then(r=>process.exit(r.ok?0:1),()=>process.exit(1))' >/dev/null 2>&1 ;;
+  esac
+}
+
+wait_app_ready() {
+  local container="$1" service="$2" max="${3:-120}" i=0
+  echo -e "${YELLOW}  hazır olması bekleniyor: $container${NC}"
+  while (( i < max )); do
+    if [[ "$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)" != running ]]; then
+      (( i > 5 )) && { echo -e "${RED}  ✗ $container çalışmıyor${NC}" >&2; docker logs --tail 20 "$container" 2>&1 | cut -c1-200 >&2; return 1; }
+    elif app_ready "$container" "$service"; then
+      # Vitrin ilk istekte önbelleğini doldurur; trafik gelmeden ana sayfa bir kez ısıtılır.
+      [[ "$service" == web ]] && docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/").catch(()=>{})' >/dev/null 2>&1 || true
+      echo -e "${GREEN}  ✓ $container hazır${NC}"
+      return 0
+    fi
+    i=$((i + 1))
+    sleep 2
+  done
+  echo -e "${RED}  ✗ $container $((max * 2)) sn içinde hazır olmadı${NC}" >&2
+  docker logs --tail 20 "$container" 2>&1 | cut -c1-200 >&2
+  return 1
+}
+
+rolling_update() {
+  local service="$1" name="istanbulofset-$1" next="istanbulofset-$1-next"
+  echo -e "${GREEN}→ $service: kesintisiz güncelleme${NC}"
+  compose_next rm -sf "$service" >/dev/null 2>&1 || true   # yarıda kalmış eski deneme
+
+  # İlk kurulum: çalışan konteyner yoksa doğrudan aç.
+  if [[ "$(docker inspect -f '{{.State.Running}}' "$name" 2>/dev/null)" != true ]]; then
+    compose app up -d --no-deps --pull missing --force-recreate "$service"
+    wait_app_ready "$name" "$service"
+    return
+  fi
+
+  compose_next up -d --no-deps --pull missing --force-recreate "$service"
+  if ! wait_app_ready "$next" "$service"; then
+    echo -e "${RED}Yeni $service açılmadı; eski sürüm yayında kalıyor, geçici konteyner kaldırılıyor.${NC}" >&2
+    compose_next rm -sf "$service" >/dev/null 2>&1 || true
+    return 1
+  fi
+  # nginx, açılırken bağlantıyı reddeden sunucuyu 10 sn "ölü" sayar (max_fails=1, fail_timeout=10s). Hazır olduktan
+  # sonra bu süre dolmadan eski konteyner kapanırsa upstream'de canlı sunucu kalmaz (502). Bu yüzden 12 sn beklenir.
+  sleep "${ROLLING_SETTLE_SECONDS:-12}"
+
+  compose app up -d --no-deps --pull missing --force-recreate "$service"
+  if ! wait_app_ready "$name" "$service"; then
+    echo -e "${RED}$name hazır olmadı; trafik $next üzerinde kalıyor (site açık). Sorun giderilince ./update.sh yeniden çalıştırın.${NC}" >&2
+    return 1
+  fi
+  sleep "${ROLLING_SETTLE_SECONDS:-12}"
+  compose_next stop -t 30 "$service" >/dev/null
+  compose_next rm -f "$service" >/dev/null
+  echo -e "${GREEN}✓ $service güncellendi${NC}"
+}
+
 stack_ps() {
   echo -e "${YELLOW}=== istanbulofset stack ===${NC}"
   docker ps --filter "label=com.istanbulofset.stack=true" \

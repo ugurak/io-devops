@@ -96,8 +96,8 @@ if [[ "$INFRA_ONLY" != true ]]; then
   ensure_registry_login
   pull_app_images
   pre_deploy
-  compose app up -d
-  wait_healthy istanbulofset-api 90 || true
+  rolling_update api
+  rolling_update web
   # vhost body-size snippet (varsa)
   if [[ -d /var/veraius/dev-ops/nginx/vhost.d ]]; then
     ln -sfn "$ROOT/nginx/vhost.d/api.istanbulofset.net_location" \

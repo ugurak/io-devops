@@ -316,6 +316,51 @@ wait_app_ready() {
   return 1
 }
 
+# nginx-proxy ekleri (vhost.d): API gövde sınırı ve /health kapatma, sitede sürüm geçişi 404 yedeği (web_location).
+# Kopyalanır, sembolik bağ kurulmaz: nginx-proxy konteyneri io-devops yolunu görmez, kırık bağ sessizce yok sayılır.
+# Location ekleri önce proxy'nin kendi nginx'iyle küçük bir yapılandırmada denenir; hatalı ek kurulmaz (nginx-proxy
+# yapılandırmayı yeniden üretirken bozuk ek yüzünden eski yapılandırmada takılı kalmasın). Rolling update'ten ÖNCE
+# çağrılır: yeni konteyner açılınca nginx-proxy yapılandırmayı yeniden üretir ve ekler o anda devreye girer.
+install_proxy_snippets() {
+  local dir="${PROXY_VHOST_DIR:-/var/veraius/dev-ops/nginx/vhost.d}"
+  [[ -d "$dir" ]] || return 0
+  docker inspect nginx-proxy >/dev/null 2>&1 || return 0
+  local -a pairs=("api.istanbulofset.net_location:api.istanbulofset.net_location" "api.istanbulofset.net:api.istanbulofset.net")
+  local host
+  for host in ${SITE_DOMAIN:-} ${SITE_WWW_HOST:-}; do pairs+=("web_location:${host}_location"); done
+
+  local p src name dst
+  local -a installed=()
+  for p in "${pairs[@]}"; do
+    src="$ROOT/nginx/vhost.d/${p%%:*}"; name="${p#*:}"; dst="$dir/$name"
+    [[ -f "$src" ]] || continue
+    [[ -f "$dst" && ! -L "$dst" ]] && cmp -s "$src" "$dst" && continue
+    if [[ "$name" == *_location ]]; then
+      # Aynı yönerge proxy'nin ürettiği yapılandırmada zaten varsa eklemek "duplicate" hatası verir.
+      if [[ "${p%%:*}" == web_location ]] && docker exec nginx-proxy grep -q "proxy_next_upstream" /etc/nginx/conf.d/default.conf 2>/dev/null \
+        && ! docker exec nginx-proxy grep -q "include /etc/nginx/vhost.d/${name}" /etc/nginx/conf.d/default.conf 2>/dev/null; then
+        echo -e "${YELLOW}nginx-proxy yapılandırmasında proxy_next_upstream zaten var; $name kurulmadı${NC}"
+        continue
+      fi
+      if ! docker exec -i nginx-proxy sh -c "cat > /tmp/io-snippet && printf '%s\n' 'events {}' 'http { upstream u { server 127.0.0.1:1; } server { listen 127.0.0.1:65000; location / { proxy_pass http://u; include /tmp/io-snippet; } } }' > /tmp/io-snippet-test.conf && nginx -t -q -c /tmp/io-snippet-test.conf; rc=\$?; rm -f /tmp/io-snippet /tmp/io-snippet-test.conf; exit \$rc" <"$src"; then
+        echo -e "${YELLOW}$name nginx -t denemesini geçemedi; kurulmadı${NC}" >&2
+        continue
+      fi
+    fi
+    rm -f "$dst"
+    install -m 644 "$src" "$dst"
+    echo "  nginx eki: $name"
+    installed+=("$dst")
+  done
+  (( ${#installed[@]} )) || return 0
+  if docker exec nginx-proxy nginx -t >/dev/null 2>&1; then
+    docker exec nginx-proxy nginx -s reload >/dev/null 2>&1 || true
+  else
+    echo -e "${YELLOW}nginx -t başarısız; yeni kurulan ekler geri alındı: ${installed[*]}${NC}" >&2
+    rm -f "${installed[@]}"
+  fi
+}
+
 rolling_update() {
   local service="$1" name="istanbulofset-$1" next="istanbulofset-$1-next"
   echo -e "${GREEN}→ $service: kesintisiz güncelleme${NC}"

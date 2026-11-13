@@ -84,6 +84,8 @@ docker rm -f istanbulofset-caddy >/dev/null 2>&1 || true
 ensure_registry_login
 pull_app_images
 pre_deploy
+# Sürümler birlikte yayındayken eksik parça diğer konteynerden gelsin (web_location); rolling update'ten önce.
+install_proxy_snippets
 # Kesintisiz: önce api (yeni web yeni API'yi bekler), sonra web. Eski ve yeni sürüm kısa süre birlikte yayındadır.
 rolling_update api
 rolling_update web

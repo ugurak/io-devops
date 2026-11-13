@@ -1,0 +1,9 @@
+# Site (web) location / eki. nginx-proxy bunu <SITE_DOMAIN>_location adıyla dahil eder; install_proxy_snippets
+# (_lib.sh) her deploy/update'te SITE_DOMAIN ve SITE_WWW_HOST için kopyalar.
+#
+# Kesintisiz güncellemede eski ve yeni web konteyneri kısa süre aynı upstream'de birlikte çalışır. Bir sürümün
+# sayfası diğer sürümün /_next/static parçasını isteyip 404 alabiliyordu (ChunkLoadError, yarım çalışan sayfa).
+# 404 dönen istek upstream'deki diğer konteynere bir kez daha gönderilir: parça hangisindeyse oradan gelir.
+# Tek konteyner varken etkisi yoktur. POST (sunucu eylemleri) nginx varsayılanıyla asla tekrarlanmaz.
+proxy_next_upstream error timeout http_404;
+proxy_next_upstream_tries 2;

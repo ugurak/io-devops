@@ -47,6 +47,8 @@ services:
       YurticiKargo__Username: ${YURTICI_USERNAME:-}
       YurticiKargo__Password: ${YURTICI_PASSWORD:-}
       YurticiKargo__BaseUrl: ${YURTICI_BASE_URL:-}
+      # true: hiçbir e-posta gönderilmez (canlıya geçiş öncesi); kuyruk hemen boşalır, günlüğe yalnızca konu yazılır.
+      Email__Disabled: "${EMAIL_DISABLED:-false}"
       Email__Host: ${SMTP_HOST:?SMTP_HOST gerekli}
       Email__Port: ${SMTP_PORT:-587}
       Email__User: ${SMTP_USER:-}

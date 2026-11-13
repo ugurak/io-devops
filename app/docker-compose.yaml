@@ -143,7 +143,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.5"
+          # Yük testi (2026-11-13): 1,5 CPU tavanı vitrinin kapasitesini belirliyordu; Node sıkıştırma ve
+          # çöp toplama için ek iş parçacığı kullanır. Makine 16 çekirdek, diğer projelere pay bırakılır.
+          cpus: "3.0"
           memory: 2G
         reservations:
           cpus: "0.25"

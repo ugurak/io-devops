@@ -37,6 +37,8 @@ services:
       AllowedHosts: "${API_DOMAIN};api;localhost;127.0.0.1"
       Cors__Origins__0: https://${SITE_DOMAIN}
       Proxy__KnownNetworks__0: 172.16.0.0/12
+      # Yük testi atlatma anahtarı (istanbulofset tests/load): yalnızca test süresince .env içinde LOAD_TEST_KEY; yayında boş.
+      RateLimiting__BypassKey: ${LOAD_TEST_KEY:-}
       Integrations__Payment: ${PAYMENT_PROVIDER:-iyzico}
       Integrations__Cargo: ${CARGO_PROVIDER:-manual}
       Integrations__EInvoice: ${EINVOICE_PROVIDER:-manual}

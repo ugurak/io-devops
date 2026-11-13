@@ -55,6 +55,14 @@ services:
       Email__From: ${SMTP_FROM:-İstanbul Ofset <siparis@istanbulofset.net>}
       # Müşteri yanıtları bu adrese gider (boşsa gönderen adres; kurumsal destek kutusu önerilir).
       Email__ReplyTo: ${SMTP_REPLY_TO:-}
+      # Ayrı gönderen hesaplar (aynı sunucu): bülten/ticari iletiler ve destek yanıtları. Kullanıcı boşsa varsayılan hesap.
+      Email__Senders__newsletter__User: ${SMTP_NEWSLETTER_USER:-}
+      Email__Senders__newsletter__Password: ${SMTP_NEWSLETTER_PASSWORD:-}
+      Email__Senders__newsletter__From: ${SMTP_NEWSLETTER_FROM:-}
+      Email__Senders__newsletter__ReplyTo: ${SMTP_REPLY_TO:-}
+      Email__Senders__support__User: ${SMTP_SUPPORT_USER:-}
+      Email__Senders__support__Password: ${SMTP_SUPPORT_PASSWORD:-}
+      Email__Senders__support__From: ${SMTP_SUPPORT_FROM:-}
       Iyzico__BaseUrl: ${IYZICO_BASE_URL:-https://api.iyzipay.com}
       Iyzico__ApiKey: ${IYZICO_API_KEY:-}
       Iyzico__SecretKey: ${IYZICO_SECRET_KEY:-}

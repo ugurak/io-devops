@@ -39,14 +39,15 @@ Caddy (Let's Encrypt, 80/443)
 | Hata takibi | `glitchtip/` (isteğe bağlı) |
 | Metrik + iz | `observability/` (isteğe bağlı) |
 
-### Kaynak bütçesi (8 CPU / 16 GB)
+### Kaynak bütçesi (sunucu 16 CPU / 32 GB)
 
-Compose `deploy.resources.limits` toplamı **8 CPU + 15G**; ~1G OS/nginx-proxy için boş.
+Compose `deploy.resources.limits` her servisin tavanıdır, ayrılmış kaynak değil: CPU tavanlarının toplamı 16'yı
+aşabilir (boştaki servis CPU almaz). Bellekte gerçek kullanım tavanların çok altındadır; diğer projelere pay kalır.
 
 | Servis | CPU | RAM |
 |--------|-----|-----|
 | api | 2.0 | 3G |
-| web (×4: web, web2, web3, web4) | 4 × 1.5 | 4 × 1.5G |
+| web (×6: web … web6) | 6 × 1.5 | 6 × 1.5G (gerçek ~550M/kopya) |
 | postgres | 1.5 | 4G |
 | redis | 0.5 | 1G |
 | minio | 0.5 | 1G |

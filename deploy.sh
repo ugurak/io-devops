@@ -103,6 +103,8 @@ if [[ "$INFRA_ONLY" != true ]]; then
   rolling_update web2
   rolling_update web3
   rolling_update web4
+  rolling_update web5
+  rolling_update web6
 fi
 
 echo ""

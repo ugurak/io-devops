@@ -93,6 +93,8 @@ rolling_update web
 rolling_update web2
 rolling_update web3
 rolling_update web4
+rolling_update web5
+rolling_update web6
 
 if [[ "$DO_PRUNE" == true ]]; then
   docker image prune -f || true

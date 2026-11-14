@@ -115,7 +115,7 @@ services:
         aliases: [api]
       veraius-proxy:
 
-  # Vitrin dört kopya çalışır (web, web2, web3, web4): tek Node süreci yük testinde ilk darboğazdı (2026-11-13). Her kopya kendi
+  # Vitrin altı kopya çalışır (web, web2 … web6): tek Node süreci yük testinde ilk darboğazdı (2026-11-13). Her kopya kendi
   # sayfa önbelleğini tutar; yönetimdeki bir kayıttan sonraki önbellek temizliği Redis (REDIS_URL) üzerinden diğer
   # kopyalara da iletilir. nginx-proxy aynı VIRTUAL_HOST'lu konteynerleri tek upstream'de sırayla dağıtır.
   web: &web
@@ -160,8 +160,8 @@ services:
       resources:
         limits:
           # Yük testi (2026-11-13): darboğaz tek Node sürecinin olay döngüsü (~1 çekirdek); kapasiteyi kopya sayısı
-          # artırır. Kopya başına 1,5 CPU (sıkıştırma/çöp toplama payı), dört kopya toplam 6 CPU / 6 GB tavan;
-          # gerçek bellek kopya başına ~550 MB. Makine 16 çekirdek, diğer projelere pay bırakılır.
+          # artırır. Kopya başına 1,5 CPU (sıkıştırma/çöp toplama payı), altı kopya toplam 9 CPU / 9 GB tavan (tavan,
+          # ayrılmış değil: boştaki kopya CPU almaz); gerçek bellek kopya başına ~550 MB. Makine 16 çekirdek / 32 GB.
           cpus: "1.5"
           memory: 1536M
         reservations:
@@ -192,3 +192,13 @@ services:
     <<: *web
     container_name: istanbulofset-web4
     hostname: web4
+
+  web5:
+    <<: *web
+    container_name: istanbulofset-web5
+    hostname: web5
+
+  web6:
+    <<: *web
+    container_name: istanbulofset-web6
+    hostname: web6

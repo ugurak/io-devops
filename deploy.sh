@@ -101,6 +101,8 @@ if [[ "$INFRA_ONLY" != true ]]; then
   rolling_update api
   rolling_update web
   rolling_update web2
+  rolling_update web3
+  rolling_update web4
 fi
 
 echo ""

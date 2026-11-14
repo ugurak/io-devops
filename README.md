@@ -46,7 +46,7 @@ Compose `deploy.resources.limits` toplamı **8 CPU + 15G**; ~1G OS/nginx-proxy i
 | Servis | CPU | RAM |
 |--------|-----|-----|
 | api | 2.0 | 3G |
-| web | 1.5 | 2G |
+| web (×4: web, web2, web3, web4) | 4 × 1.5 | 4 × 1.5G |
 | postgres | 1.5 | 4G |
 | redis | 0.5 | 1G |
 | minio | 0.5 | 1G |

@@ -91,6 +91,8 @@ rolling_update api
 rolling_update web
 # İkinci vitrin kopyası: ilki güncellenip yayına döndükten sonra (biri her an yeni sürümde açık kalır).
 rolling_update web2
+rolling_update web3
+rolling_update web4
 
 if [[ "$DO_PRUNE" == true ]]; then
   docker image prune -f || true

@@ -292,7 +292,7 @@ app_ready() {
   local container="$1" service="$2"
   case "$service" in
     api) docker exec "$container" bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /live HTTP/1.0\r\n\r\n" >&3 && head -1 <&3 | grep -q " 200"' >/dev/null 2>&1 ;;
-    web|web2) docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/robots.txt").then(r=>process.exit(r.ok?0:1),()=>process.exit(1))' >/dev/null 2>&1 ;;
+    web|web[0-9]) docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/robots.txt").then(r=>process.exit(r.ok?0:1),()=>process.exit(1))' >/dev/null 2>&1 ;;
   esac
 }
 

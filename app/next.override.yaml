@@ -7,3 +7,7 @@ services:
     container_name: istanbulofset-web-next
   web2:
     container_name: istanbulofset-web2-next
+  web3:
+    container_name: istanbulofset-web3-next
+  web4:
+    container_name: istanbulofset-web4-next

@@ -292,7 +292,7 @@ app_ready() {
   local container="$1" service="$2"
   case "$service" in
     api) docker exec "$container" bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /live HTTP/1.0\r\n\r\n" >&3 && head -1 <&3 | grep -q " 200"' >/dev/null 2>&1 ;;
-    web) docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/robots.txt").then(r=>process.exit(r.ok?0:1),()=>process.exit(1))' >/dev/null 2>&1 ;;
+    web|web2) docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/robots.txt").then(r=>process.exit(r.ok?0:1),()=>process.exit(1))' >/dev/null 2>&1 ;;
   esac
 }
 
@@ -304,7 +304,7 @@ wait_app_ready() {
       (( i > 5 )) && { echo -e "${RED}  ✗ $container çalışmıyor${NC}" >&2; docker logs --tail 20 "$container" 2>&1 | cut -c1-200 >&2; return 1; }
     elif app_ready "$container" "$service"; then
       # Vitrin ilk istekte önbelleğini doldurur; trafik gelmeden ana sayfa bir kez ısıtılır.
-      [[ "$service" == web ]] && docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/").catch(()=>{})' >/dev/null 2>&1 || true
+      [[ "$service" == web* ]] && docker exec "$container" node -e 'fetch("http://127.0.0.1:3000/").catch(()=>{})' >/dev/null 2>&1 || true
       echo -e "${GREEN}  ✓ $container hazır${NC}"
       return 0
     fi

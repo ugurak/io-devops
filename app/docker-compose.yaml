@@ -115,7 +115,10 @@ services:
         aliases: [api]
       veraius-proxy:
 
-  web:
+  # Vitrin iki kopya çalışır (web, web2): tek Node süreci yük testinde ilk darboğazdı (2026-11-13). Her kopya kendi
+  # sayfa önbelleğini tutar; yönetimdeki bir kayıttan sonraki önbellek temizliği Redis (REDIS_URL) üzerinden diğer
+  # kopyaya da iletilir. nginx-proxy aynı VIRTUAL_HOST'lu iki konteyneri tek upstream'de sırayla dağıtır.
+  web: &web
     image: ${DOCKER_REGISTRY:-registry.veraius.com}/istanbulofset-web:${IMAGE_TAG:-latest}
     container_name: istanbulofset-web
     # Konteyner günlükleri en fazla 3×10 MB (varsayılan json-file sınırsız büyür, disk dolar).
@@ -139,6 +142,9 @@ services:
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
       # Site araması (Türkçe kök, yazım hatası toleransı); Elasticsearch yoksa yerel aramaya düşer.
       ELASTICSEARCH_URL: http://elasticsearch:9200
+      # Kopyalar arası önbellek geçersiz kılma ve kısa ömürlü paylaşılan veri (kartvizit PDF'i, belge kodu); 3. veritabanı.
+      REDIS_URL: redis://redis:6379/3
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       # Yalnızca istanbulofset-site* dizinlerine yetkili kullanıcı (elk/elastic-setup.sh oluşturur).
       ELASTICSEARCH_USERNAME: istanbulofset_web
       ELASTICSEARCH_PASSWORD: ${SEARCH_ES_PASSWORD:-${ELASTIC_PASSWORD}}
@@ -154,9 +160,10 @@ services:
       resources:
         limits:
           # Yük testi (2026-11-13): 1,5 CPU tavanı vitrinin kapasitesini belirliyordu; Node sıkıştırma ve
-          # çöp toplama için ek iş parçacığı kullanır. Makine 16 çekirdek, diğer projelere pay bırakılır.
-          cpus: "3.0"
-          memory: 2560M
+          # çöp toplama için ek iş parçacığı kullanır. Kopya başına 2 CPU (iki kopya toplam 4); makine 16 çekirdek,
+          # diğer projelere pay bırakılır.
+          cpus: "2.0"
+          memory: 2048M
         reservations:
           cpus: "0.25"
           memory: 512M
@@ -170,3 +177,8 @@ services:
       istanbulofset-proxy:
         aliases: [web]
       veraius-proxy:
+
+  web2:
+    <<: *web
+    container_name: istanbulofset-web2
+    hostname: web2

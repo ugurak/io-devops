@@ -100,6 +100,7 @@ if [[ "$INFRA_ONLY" != true ]]; then
   install_proxy_snippets
   rolling_update api
   rolling_update web
+  rolling_update web2
 fi
 
 echo ""

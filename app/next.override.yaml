@@ -5,3 +5,5 @@ services:
     container_name: istanbulofset-api-next
   web:
     container_name: istanbulofset-web-next
+  web2:
+    container_name: istanbulofset-web2-next

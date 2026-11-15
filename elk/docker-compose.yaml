@@ -37,7 +37,7 @@ services:
         limits:
           # Site araması (vitrin /arama) buradan; yük anında 1 CPU tavanı aramayı yavaşlatmasın.
           cpus: "2.0"
-          memory: 3G
+          memory: 4G
         reservations:
           cpus: "0.25"
           memory: 768M
@@ -77,8 +77,9 @@ services:
     deploy:
       resources:
         limits:
+          # Boşta bile 1,48/1,5 GB'deydi (2026-11-15); yük anında günlük akışı artınca OOM riski.
           cpus: "1.0"
-          memory: 1536M
+          memory: 2G
         reservations:
           cpus: "0.1"
           memory: 256M

@@ -51,8 +51,8 @@ aşabilir (boştaki servis CPU almaz). Bellekte gerçek kullanım tavanların ç
 | postgres | 3.0 | 4G |
 | redis | 1.0 | 1G |
 | minio | 1.0 | 1G |
-| elasticsearch | 2.0 | 3G (`ES_JAVA_OPTS` 1g) |
-| logstash | 1.0 | 1.5G |
+| elasticsearch | 2.0 | 4G (`ES_JAVA_OPTS` 1g) |
+| logstash | 1.0 | 2G |
 | kibana | 0.5 | 1G |
 | gatus | 0.25 | 128M |
 | *clamav* (isteğe bağlı) | 0.5 | 2G |

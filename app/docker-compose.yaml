@@ -95,12 +95,14 @@ services:
       VIRTUAL_PORT: "8080"
       LETSENCRYPT_HOST: ${API_DOMAIN}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
+    # Sunucuda öncelik istanbulofset'te: CPU için yarışıldığında diğer projelerin (varsayılan 1024) 4 katı pay alır.
+    cpu_shares: 4096
     deploy:
       resources:
-        # Sunucu 16 CPU / 32 GB. Tavan, ayrılmış kaynak değil: boşken CPU almaz; yük anında .NET iş parçacıkları kullanır.
+        # Sunucu 16 CPU / 32 GB, öncelik istanbulofset. Tavan, ayrılmış kaynak değil: boşken CPU almaz.
         limits:
-          cpus: "4.0"
-          memory: 4G
+          cpus: "8.0"
+          memory: 6G
         reservations:
           cpus: "0.5"
           memory: 512M
@@ -115,7 +117,7 @@ services:
         aliases: [api]
       veraius-proxy:
 
-  # Vitrin altı kopya çalışır (web, web2 … web6): tek Node süreci yük testinde ilk darboğazdı (2026-11-13). Her kopya kendi
+  # Vitrin sekiz kopya çalışır (web, web2 … web8): tek Node süreci yük testinde ilk darboğazdı (2026-11-13). Her kopya kendi
   # sayfa önbelleğini tutar; yönetimdeki bir kayıttan sonraki önbellek temizliği Redis (REDIS_URL) üzerinden diğer
   # kopyalara da iletilir. nginx-proxy aynı VIRTUAL_HOST'lu konteynerleri tek upstream'de sırayla dağıtır.
   web: &web
@@ -156,14 +158,15 @@ services:
       VIRTUAL_PORT: "3000"
       LETSENCRYPT_HOST: ${SITE_DOMAIN}${SITE_WWW_HOST:+,${SITE_WWW_HOST}}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
+    # Sunucuda öncelik istanbulofset'te: CPU için yarışıldığında diğer projelerin (varsayılan 1024) 4 katı pay alır.
+    cpu_shares: 4096
     deploy:
       resources:
         limits:
           # Yük testi (2026-11-13): darboğaz tek Node sürecinin olay döngüsü (~1 çekirdek); kapasiteyi kopya sayısı
-          # artırır. Kopya başına 2 CPU: olay döngüsü ~1 çekirdek + sıkıştırma, çöp toplama ve render iş parçacıkları.
-          # Altı kopya toplam 12 CPU / 12 GB tavan (tavan, ayrılmış değil: boştaki kopya CPU almaz); gerçek bellek
-          # kopya başına ~550 MB. Makine 16 çekirdek / 32 GB.
-          cpus: "2.0"
+          # artırır (8 kopya). Kopya başına 3 CPU: olay döngüsü + sıkıştırma, çöp toplama, render iş parçacıkları.
+          # Tavan, ayrılmış değil: boştaki kopya CPU almaz; gerçek bellek kopya başına ~250–550 MB. Makine 16 çekirdek.
+          cpus: "3.0"
           memory: 2G
         reservations:
           cpus: "0.25"
@@ -203,3 +206,13 @@ services:
     <<: *web
     container_name: istanbulofset-web6
     hostname: web6
+
+  web7:
+    <<: *web
+    container_name: istanbulofset-web7
+    hostname: web7
+
+  web8:
+    <<: *web
+    container_name: istanbulofset-web8
+    hostname: web8

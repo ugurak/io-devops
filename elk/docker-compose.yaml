@@ -18,7 +18,7 @@ services:
       xpack.security.enabled: "true"
       xpack.security.http.ssl.enabled: "false"
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD gerekli}
-      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms1g -Xmx1g}
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms2g -Xmx2g}
       TZ: Europe/Istanbul
     volumes:
       - esdata:/usr/share/elasticsearch/data
@@ -32,12 +32,14 @@ services:
       timeout: 10s
       retries: 20
       start_period: 40s
+    # Sunucuda öncelik istanbulofset'te: CPU için yarışıldığında diğer projelerin (varsayılan 1024) 2 katı pay alır.
+    cpu_shares: 2048
     deploy:
       resources:
         limits:
-          # Site araması (vitrin /arama) buradan; yük anında 1 CPU tavanı aramayı yavaşlatmasın.
-          cpus: "2.0"
-          memory: 4G
+          # Site araması (vitrin /arama) buradan; yığın 2 GB (ES_JAVA_OPTS), kalan bellek dosya önbelleği.
+          cpus: "4.0"
+          memory: 6G
         reservations:
           cpus: "0.25"
           memory: 768M
@@ -78,8 +80,8 @@ services:
       resources:
         limits:
           # Boşta bile 1,48/1,5 GB'deydi (2026-11-15); yük anında günlük akışı artınca OOM riski.
-          cpus: "1.0"
-          memory: 2G
+          cpus: "2.0"
+          memory: 2560M
         reservations:
           cpus: "0.1"
           memory: 256M

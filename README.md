@@ -42,17 +42,18 @@ Caddy (Let's Encrypt, 80/443)
 ### Kaynak bütçesi (sunucu 16 CPU / 32 GB)
 
 Compose `deploy.resources.limits` her servisin tavanıdır, ayrılmış kaynak değil: CPU tavanlarının toplamı 16'yı
-aşabilir (boştaki servis CPU almaz). Bellekte gerçek kullanım tavanların çok altındadır; diğer projelere pay kalır.
+aşabilir (boştaki servis CPU almaz). Bellekte gerçek kullanım tavanların çok altındadır. Sunucuda öncelik istanbulofset'tedir: api, web, postgres ve
+redis `cpu_shares: 4096`, elasticsearch ve minio 2048 ile CPU yarışında diğer projelerin (1024) önüne geçer.
 
 | Servis | CPU | RAM |
 |--------|-----|-----|
-| api | 4.0 | 4G |
-| web (×6: web … web6) | 6 × 2.0 | 6 × 2G (gerçek ~550M/kopya) |
-| postgres | 3.0 | 4G |
-| redis | 1.0 | 1G |
-| minio | 1.0 | 1G |
-| elasticsearch | 2.0 | 4G (`ES_JAVA_OPTS` 1g) |
-| logstash | 1.0 | 2G |
+| api | 8.0 | 6G |
+| web (×8: web … web8) | 8 × 3.0 | 8 × 2G (gerçek ~250–550M/kopya) |
+| postgres | 6.0 | 8G |
+| redis | 1.0 | 2G |
+| minio | 2.0 | 2G |
+| elasticsearch | 4.0 | 6G (`ES_JAVA_OPTS` 2g) |
+| logstash | 2.0 | 2.5G |
 | kibana | 0.5 | 1G |
 | gatus | 0.25 | 128M |
 | *clamav* (isteğe bağlı) | 0.5 | 2G |
@@ -273,7 +274,7 @@ ilkeyi oluşturur. Boş bırakılırsa API root kullanıcısıyla devam eder.
   Redis belleği %90'ı aşınca veya e-posta kuyruğu 1 saat takılınca (`/health` 503).
 - **İmaj yamaları:** altyapı imajları ana sürümde sabit (ör. `postgres:17-alpine`); `./update.sh --infra-pull` aynı
   etiketin güvenlik yamalarını çeker. api/web imajları her derlemede taban imajı yeniden çeker (`--pull`).
-- **Postgres ayarı** (4 GB sınırına göre; `.env` ile değiştirilebilir): `PG_SHARED_BUFFERS` (1GB),
-  `PG_EFFECTIVE_CACHE_SIZE` (3GB), `PG_WORK_MEM` (16MB), `PG_MAINTENANCE_WORK_MEM` (256MB), `PG_MAX_CONNECTIONS` (150),
+- **Postgres ayarı** (8 GB sınırına göre; `.env` ile değiştirilebilir): `PG_SHARED_BUFFERS` (2GB),
+  `PG_EFFECTIVE_CACHE_SIZE` (6GB), `PG_WORK_MEM` (16MB), `PG_MAINTENANCE_WORK_MEM` (256MB), `PG_MAX_CONNECTIONS` (150),
   `PG_SLOW_QUERY_MS` (1000; yavaş sorgular günlüğe). API havuzu: `API_DB_POOL_SIZE` (50).
   İsteğe bağlı: `MONITOR_ES_PASSWORD` (boşsa `ELASTIC_PASSWORD`).

@@ -18,9 +18,9 @@ services:
     command:
       - postgres
       - -c
-      - shared_buffers=${PG_SHARED_BUFFERS:-1280MB}
+      - shared_buffers=${PG_SHARED_BUFFERS:-2GB}
       - -c
-      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-3584MB}
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-6GB}
       - -c
       - work_mem=${PG_WORK_MEM:-16MB}
       - -c
@@ -47,12 +47,14 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    # Sunucuda öncelik istanbulofset'te: CPU için yarışıldığında diğer projelerin (varsayılan 1024) 4 katı pay alır.
+    cpu_shares: 4096
     deploy:
       resources:
         limits:
-          # Sunucu 16 CPU; sorgular paralel bağlantılarda çalışır. Tavan, ayrılmış değil.
-          cpus: "3.0"
-          memory: 4G
+          # Sunucu 16 CPU / 32 GB, öncelik istanbulofset; sorgular paralel bağlantılarda çalışır. Tavan, ayrılmış değil.
+          cpus: "6.0"
+          memory: 8G
         reservations:
           cpus: "0.5"
           memory: 1G

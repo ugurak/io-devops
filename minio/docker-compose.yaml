@@ -22,12 +22,14 @@ services:
       TZ: Europe/Istanbul
     volumes:
       - miniodata:/data
+    # Sunucuda öncelik istanbulofset'te: CPU için yarışıldığında diğer projelerin (varsayılan 1024) 2 katı pay alır.
+    cpu_shares: 2048
     deploy:
       resources:
         limits:
           # Dosya yüklemeleri (sipariş baskı dosyaları) buradan geçer.
-          cpus: "1.0"
-          memory: 1G
+          cpus: "2.0"
+          memory: 2G
         reservations:
           cpus: "0.1"
           memory: 256M

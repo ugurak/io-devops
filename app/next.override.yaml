@@ -15,3 +15,7 @@ services:
     container_name: istanbulofset-web5-next
   web6:
     container_name: istanbulofset-web6-next
+  web7:
+    container_name: istanbulofset-web7-next
+  web8:
+    container_name: istanbulofset-web8-next

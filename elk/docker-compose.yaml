@@ -35,7 +35,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          # Site araması (vitrin /arama) buradan; yük anında 1 CPU tavanı aramayı yavaşlatmasın.
+          cpus: "2.0"
           memory: 3G
         reservations:
           cpus: "0.25"
@@ -76,7 +77,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: "1.0"
           memory: 1536M
         reservations:
           cpus: "0.1"

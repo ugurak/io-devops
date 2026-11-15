@@ -46,13 +46,13 @@ aşabilir (boştaki servis CPU almaz). Bellekte gerçek kullanım tavanların ç
 
 | Servis | CPU | RAM |
 |--------|-----|-----|
-| api | 2.0 | 3G |
-| web (×6: web … web6) | 6 × 1.5 | 6 × 1.5G (gerçek ~550M/kopya) |
-| postgres | 1.5 | 4G |
-| redis | 0.5 | 1G |
-| minio | 0.5 | 1G |
-| elasticsearch | 1.0 | 2G (`ES_JAVA_OPTS` 1g) |
-| logstash | 0.5 | 1G |
+| api | 4.0 | 4G |
+| web (×6: web … web6) | 6 × 2.0 | 6 × 2G (gerçek ~550M/kopya) |
+| postgres | 3.0 | 4G |
+| redis | 1.0 | 1G |
+| minio | 1.0 | 1G |
+| elasticsearch | 2.0 | 3G (`ES_JAVA_OPTS` 1g) |
+| logstash | 1.0 | 1.5G |
 | kibana | 0.5 | 1G |
 | gatus | 0.25 | 128M |
 | *clamav* (isteğe bağlı) | 0.5 | 2G |

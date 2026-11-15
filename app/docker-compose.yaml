@@ -97,10 +97,10 @@ services:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@istanbulofset.net}
     deploy:
       resources:
-        # host bütçe ~8 CPU / 16G — api ağır
+        # Sunucu 16 CPU / 32 GB. Tavan, ayrılmış kaynak değil: boşken CPU almaz; yük anında .NET iş parçacıkları kullanır.
         limits:
-          cpus: "2.0"
-          memory: 3G
+          cpus: "4.0"
+          memory: 4G
         reservations:
           cpus: "0.5"
           memory: 512M
@@ -160,10 +160,11 @@ services:
       resources:
         limits:
           # Yük testi (2026-11-13): darboğaz tek Node sürecinin olay döngüsü (~1 çekirdek); kapasiteyi kopya sayısı
-          # artırır. Kopya başına 1,5 CPU (sıkıştırma/çöp toplama payı), altı kopya toplam 9 CPU / 9 GB tavan (tavan,
-          # ayrılmış değil: boştaki kopya CPU almaz); gerçek bellek kopya başına ~550 MB. Makine 16 çekirdek / 32 GB.
-          cpus: "1.5"
-          memory: 1536M
+          # artırır. Kopya başına 2 CPU: olay döngüsü ~1 çekirdek + sıkıştırma, çöp toplama ve render iş parçacıkları.
+          # Altı kopya toplam 12 CPU / 12 GB tavan (tavan, ayrılmış değil: boştaki kopya CPU almaz); gerçek bellek
+          # kopya başına ~550 MB. Makine 16 çekirdek / 32 GB.
+          cpus: "2.0"
+          memory: 2G
         reservations:
           cpus: "0.25"
           memory: 512M

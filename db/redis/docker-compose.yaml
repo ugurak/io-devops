@@ -40,7 +40,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          # Redis komutları tek iş parçacığında; 1 CPU'dan fazlası kullanılmaz.
+          cpus: "1.0"
           memory: 1G
         reservations:
           cpus: "0.1"

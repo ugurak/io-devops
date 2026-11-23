@@ -73,6 +73,8 @@ services:
       Security__RequireStaffMfa: "${REQUIRE_STAFF_MFA:-false}"
       Seed__AdminEmail: ${ADMIN_EMAIL:-}
       Seed__AdminPassword: ${ADMIN_INITIAL_PASSWORD:-}
+      # Raporlar için örnek veri (DEMO_REPORTS=seed|remove; boş = kapalı). Yalnız test ortamı.
+      DemoData__Reports: ${DEMO_REPORTS:-}
       # _lib.sh EXTRA_STACKS'e göre doldurur (observability / glitchtip / clamav); boşsa özellik kapalı.
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       Sentry__Dsn: ${SENTRY_DSN_API:-}

@@ -99,14 +99,8 @@ if [[ "$INFRA_ONLY" != true ]]; then
   # nginx ekleri (API gövde sınırı, /health kapalı, sürüm geçişinde 404 yedeği) rolling update'ten önce kurulur.
   install_proxy_snippets
   rolling_update api
-  rolling_update web
-  rolling_update web2
-  rolling_update web3
-  rolling_update web4
-  rolling_update web5
-  rolling_update web6
-  rolling_update web7
-  rolling_update web8
+  # Vitrin kopyaları toplu geçer: eski ve yeni sürüm yalnızca birkaç saniye birlikte yayında (cutover_web).
+  cutover_web
 fi
 
 echo ""

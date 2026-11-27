@@ -238,13 +238,19 @@ geçiş başarısızsa eski sürüm çalışmaya devam eder. f1fb59e'den eski bi
 
 ### Kesintisiz geçiş
 
-`update.sh` (ve `deploy.sh`) api ile web'i kapatıp açmaz; `_lib.sh` → `rolling_update`:
+`update.sh` (ve `deploy.sh`) api ile web'i kapatıp açmaz; `_lib.sh` → `rolling_update` (api):
 
 1. Yeni imaj geçici `istanbulofset-<servis>-next` konteynerinde açılır (`app/next.override.yaml`, ayrı compose projesi).
    Aynı `VIRTUAL_HOST` ve ağ takma adı sayesinde nginx-proxy trafiği eski ve yeni konteynere birlikte dağıtır.
 2. `-next` hazır olunca (api `/live`, web `robots.txt` + ana sayfa ısıtma) 12 sn beklenir, asıl konteyner yeni imajla
    yeniden yaratılır; bu sırada trafiği `-next` taşır. Bağlantıyı reddeden sunucuya giden istek nginx'te diğerine aktarılır.
 3. Asıl konteyner hazır olunca 12 sn sonra `-next` kaldırılır.
+
+**Web (8 kopya) toplu geçer** (`cutover_web`): kopyalar teker teker güncellenince eski ve yeni sürüm dakikalarca
+birlikte yayında kalıyor, tarayıcıdaki sayfa ile sayfa geçişinin yanıtı farklı sürümlerden gelince geçişler
+kırılıyordu ("Bir şeyler ters gitti"). Şimdi yeni imaj önce ilk 3 kopyanın `-next` konteynerinde açılır
+(`WEB_SWAP_COPIES`), hazır olunca 12 sn sonra eski sürümün **bütün** kopyaları birlikte kapanır; asıl 8 kopya yeni
+imajla birlikte açılır ve hazır olunca `-next`'ler kaldırılır. İki sürüm yalnızca bu 12 sn birlikte yayındadır.
 
 Yeni sürüm açılmazsa eski sürüm yayında kalır ve betik hata verir. Asıl konteyner açılmazsa trafik `-next`'te kalır;
 sorunu giderip `./update.sh`'ı yeniden çalıştırın. 12 sn, nginx'in açılış sırasında reddedilen sunucuyu "ölü" saydığı

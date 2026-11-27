@@ -88,15 +88,8 @@ pre_deploy
 install_proxy_snippets
 # Kesintisiz: önce api (yeni web yeni API'yi bekler), sonra web. Eski ve yeni sürüm kısa süre birlikte yayındadır.
 rolling_update api
-rolling_update web
-# İkinci vitrin kopyası: ilki güncellenip yayına döndükten sonra (biri her an yeni sürümde açık kalır).
-rolling_update web2
-rolling_update web3
-rolling_update web4
-rolling_update web5
-rolling_update web6
-rolling_update web7
-rolling_update web8
+# Vitrin kopyaları toplu geçer: eski ve yeni sürüm yalnızca birkaç saniye birlikte yayında (cutover_web).
+cutover_web
 
 if [[ "$DO_PRUNE" == true ]]; then
   docker image prune -f || true

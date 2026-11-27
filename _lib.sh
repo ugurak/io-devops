@@ -394,6 +394,65 @@ rolling_update() {
   echo -e "${GREEN}✓ $service güncellendi${NC}"
 }
 
+# Vitrin kopyaları (app/docker-compose.yaml). Sıra önemli: ilk WEB_SWAP_COPIES tanesi geçişte geçici kopya olur.
+WEB_SERVICES=(web web2 web3 web4 web5 web6 web7 web8)
+
+# Vitrin toplu geçiş. Kopyalar rolling_update ile teker teker güncellenince eski ve yeni sürüm dakikalarca birlikte
+# yayında kalıyordu: tarayıcıdaki sayfa bir sürümden, sayfa geçişinin yanıtı diğerinden geliyor; geçişler tam
+# yenilemeye ya da React #412'ye düşüyor, kullanıcı "Bir şeyler ters gitti" görüyordu. Burada iki sürüm yalnızca
+# ROLLING_SETTLE_SECONDS kadar birlikte yayındadır:
+#   1) yeni imaj ilk WEB_SWAP_COPIES (3) kopyanın -next konteynerinde açılır; hepsi hazır olunca nginx'in görmesi beklenir;
+#   2) eski sürümün bütün kopyaları birlikte kapanır → bundan sonra yalnız yeni sürüm yanıt verir;
+#   3) asıl kopyalar yeni imajla birlikte açılır; hazır olunca -next kopyalar kaldırılır.
+# Yeni sürüm açılmazsa eski sürüm hiç kapanmadan yayında kalır. Asıl kopyalar açılmazsa trafik -next'te kalır.
+cutover_web() {
+  local settle="${ROLLING_SETTLE_SECONDS:-12}" swap="${WEB_SWAP_COPIES:-3}" s
+  local -a all=("${WEB_SERVICES[@]}")
+  local -a temp=("${all[@]:0:swap}")
+  echo -e "${GREEN}→ web: toplu geçiş (${#all[@]} kopya; geçişte ${#temp[@]} geçici kopya)${NC}"
+  compose_next rm -sf "${all[@]}" >/dev/null 2>&1 || true   # yarıda kalmış eski deneme
+
+  local running=0
+  for s in "${all[@]}"; do
+    [[ "$(docker inspect -f '{{.State.Running}}' "istanbulofset-$s" 2>/dev/null)" == true ]] && running=$((running + 1))
+  done
+  # İlk kurulum: çalışan kopya yoksa doğrudan aç.
+  if (( running == 0 )); then
+    compose app up -d --no-deps --pull missing --force-recreate "${all[@]}"
+    for s in "${all[@]}"; do wait_app_ready "istanbulofset-$s" "$s" || return 1; done
+    return 0
+  fi
+
+  # 1) Yeni sürüm geçici kopyalarda; eski sürüm bu sırada tek başına yayında.
+  compose_next up -d --no-deps --pull missing --force-recreate "${temp[@]}"
+  for s in "${temp[@]}"; do
+    if ! wait_app_ready "istanbulofset-$s-next" "$s"; then
+      echo -e "${RED}Yeni web açılmadı; eski sürüm yayında kalıyor, geçici kopyalar kaldırılıyor.${NC}" >&2
+      compose_next rm -sf "${temp[@]}" >/dev/null 2>&1 || true
+      return 1
+    fi
+  done
+  # nginx açılırken reddedilen sunucuyu 10 sn "ölü" sayar; eskiler kapanmadan yeni kopyaları canlı görmesi beklenir.
+  sleep "$settle"
+
+  # 2) Eski sürüm birlikte kapanır: iki sürümün birlikte yayında olduğu süre burada biter.
+  echo "  eski sürüm kapatılıyor (${#all[@]} kopya)"
+  compose app stop -t 30 "${all[@]}" >/dev/null
+
+  # 3) Asıl kopyalar yeni imajla; bu sırada trafiği geçici kopyalar taşır.
+  compose app up -d --no-deps --pull missing --force-recreate "${all[@]}"
+  local -a failed=()
+  for s in "${all[@]}"; do wait_app_ready "istanbulofset-$s" "$s" || failed+=("$s"); done
+  if (( ${#failed[@]} )); then
+    echo -e "${RED}Hazır olmayan kopyalar: ${failed[*]}. Trafik geçici kopyalarda ve hazır olanlarda (site açık); sorun giderilince ./update.sh yeniden çalıştırın.${NC}" >&2
+    return 1
+  fi
+  sleep "$settle"
+  compose_next stop -t 30 "${temp[@]}" >/dev/null
+  compose_next rm -f "${temp[@]}" >/dev/null
+  echo -e "${GREEN}✓ web güncellendi (${#all[@]} kopya)${NC}"
+}
+
 stack_ps() {
   echo -e "${YELLOW}=== istanbulofset stack ===${NC}"
   docker ps --filter "label=com.istanbulofset.stack=true" \

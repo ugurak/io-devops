@@ -28,8 +28,10 @@ services:
       retries: 12
       start_period: 30s
     environment:
-      ConnectionStrings__Default: Host=postgres;Database=${POSTGRES_DB:-istanbulofset};Username=${POSTGRES_USER:-istanbulofset};Password=${POSTGRES_PASSWORD};Maximum Pool Size=${API_DB_POOL_SIZE:-50}
-      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},abortConnect=false
+      # Altyapı adresleri konteyner adıyla (istanbulofset-*): api veraius-proxy ağında da olduğu için kısa adlar
+      # (postgres, redis, minio, elasticsearch, logstash) Veraius'un aynı adlı konteynerlerine çözülebiliyor.
+      ConnectionStrings__Default: Host=istanbulofset-postgres;Database=${POSTGRES_DB:-istanbulofset};Username=${POSTGRES_USER:-istanbulofset};Password=${POSTGRES_PASSWORD};Maximum Pool Size=${API_DB_POOL_SIZE:-50}
+      ConnectionStrings__Redis: istanbulofset-redis:6379,password=${REDIS_PASSWORD},abortConnect=false
       Database__MigrateOnStartup: "true"
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY gerekli (en az 32 karakter)}
       Web__BaseUrl: https://${SITE_DOMAIN}
@@ -81,13 +83,13 @@ services:
       Uploads__ClamAv: ${CLAMAV_ADDRESS:-}
       Uploads__ArtworkRetentionDays: ${ARTWORK_RETENTION_DAYS:-365}
       Storage__Provider: Minio
-      Storage__Minio__Endpoint: minio:9000
+      Storage__Minio__Endpoint: istanbulofset-minio:9000
       # Kısıtlı uygulama kullanıcısı (minio/minio-setup.sh); tanımlı değilse root ile devam eder.
       Storage__Minio__AccessKey: ${MINIO_APP_USER:-${MINIO_ROOT_USER}}
       Storage__Minio__SecretKey: ${MINIO_APP_PASSWORD:-${MINIO_ROOT_PASSWORD}}
       Storage__Minio__Bucket: ${MINIO_BUCKET:-istanbulofset-uploads}
       Storage__Minio__UseSsl: "false"
-      Logging__Logstash__Url: http://logstash:8080
+      Logging__Logstash__Url: http://istanbulofset-logstash:8080
       WebPush__PublicKey: ${WEBPUSH_PUBLIC_KEY:-}
       WebPush__PrivateKey: ${WEBPUSH_PRIVATE_KEY:-}
       WebPush__Subject: ${WEBPUSH_SUBJECT:-mailto:destek@istanbulofset.net}
@@ -145,9 +147,9 @@ services:
       ALLOW_AI_TRAINING: ${ALLOW_AI_TRAINING:-true}
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
       # Site araması (Türkçe kök, yazım hatası toleransı); Elasticsearch yoksa yerel aramaya düşer.
-      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_URL: http://istanbulofset-elasticsearch:9200
       # Kopyalar arası önbellek geçersiz kılma ve kısa ömürlü paylaşılan veri (kartvizit PDF'i, belge kodu); 3. veritabanı.
-      REDIS_URL: redis://redis:6379/3
+      REDIS_URL: redis://istanbulofset-redis:6379/3
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       # Yalnızca istanbulofset-site* dizinlerine yetkili kullanıcı (elk/elastic-setup.sh oluşturur).
       ELASTICSEARCH_USERNAME: istanbulofset_web
